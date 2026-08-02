@@ -1,0 +1,181 @@
+/* =====================================================
+   VanRakshak AI — Upload Page
+   Page-specific layout only. All component styling
+   (dropzone, buttons, cards, badges, navbar, footer) comes
+   from styles/components.css — nothing is duplicated here.
+   ===================================================== */
+
+/* -----------------------------------------------------
+   Utility (page-local — hides the native file input while
+   keeping it accessible to assistive tech and keyboard use)
+   ----------------------------------------------------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* -----------------------------------------------------
+   Hero
+   ----------------------------------------------------- */
+.upload-hero {
+  padding-top: var(--space-2xl);
+}
+
+.upload-hero-lead {
+  font-size: var(--fs-lead);
+  color: var(--color-text-muted);
+  margin-top: var(--space-sm);
+  margin-inline: auto;
+  max-width: 52ch;
+}
+
+/* -----------------------------------------------------
+   Upload panel
+   ----------------------------------------------------- */
+.upload-panel {
+  padding: var(--space-lg);
+}
+
+.upload-or {
+  font-size: var(--fs-small);
+  color: var(--color-text-muted);
+}
+
+/* Make the whole dropzone act like a button for click/keyboard */
+.dropzone {
+  cursor: pointer;
+}
+
+.dropzone:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+
+/* -----------------------------------------------------
+   Validation message
+   ----------------------------------------------------- */
+.upload-error {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--fs-small);
+  color: var(--color-error);
+  background-color: rgba(138, 59, 44, 0.08);
+  border: 1px solid rgba(138, 59, 44, 0.25);
+  border-radius: var(--radius-md);
+}
+
+/* -----------------------------------------------------
+   Empty state
+   ----------------------------------------------------- */
+.upload-empty-state {
+  margin-top: var(--space-md);
+  font-size: var(--fs-small);
+}
+
+/* -----------------------------------------------------
+   Preview state
+   ----------------------------------------------------- */
+.upload-preview {
+  display: flex;
+  gap: var(--space-lg);
+  margin-top: var(--space-md);
+  align-items: flex-start;
+}
+
+.upload-preview-media {
+  flex: 0 0 160px;
+  width: 160px;
+}
+
+.upload-preview-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.upload-detail-list {
+  width: 100%;
+}
+
+.upload-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-block: var(--space-2xs);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--fs-small);
+}
+
+.upload-detail-row:last-child {
+  border-bottom: none;
+}
+
+.upload-detail-row dt {
+  color: var(--color-text-muted);
+}
+
+.upload-detail-row dd {
+  font-weight: var(--fw-medium);
+  color: var(--color-text);
+  text-align: right;
+  word-break: break-word;
+}
+
+.upload-ready-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.upload-remove-btn {
+  margin-top: var(--space-2xs);
+}
+
+/* -----------------------------------------------------
+   Actions
+   ----------------------------------------------------- */
+.upload-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-lg);
+}
+
+/* -----------------------------------------------------
+   Responsive
+   ----------------------------------------------------- */
+@media (max-width: 640px) {
+  .upload-panel {
+    padding: var(--space-md);
+  }
+
+  .upload-preview {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .upload-preview-media {
+    width: 140px;
+    flex-basis: 140px;
+  }
+
+  .upload-preview-details {
+    align-items: center;
+  }
+
+  .upload-detail-row {
+    text-align: left;
+  }
+
+  .upload-actions .btn {
+    width: 100%;
+  }
+}

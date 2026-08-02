@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analyze Satellite Image — VanRakshak AI</title>
+  <meta
+    name="description"
+    content="Upload a satellite image to VanRakshak AI for land cover classification."
+  />
+
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+  <!-- Google Fonts: Cormorant Garamond (display) + Inter (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Shared design system -->
+  <link rel="stylesheet" href="styles/variables.css" />
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/components.css" />
+  <link rel="stylesheet" href="styles/animations.css" />
+
+  <!-- Page-specific layout only -->
+  <link rel="stylesheet" href="styles/upload.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="navbar">
+    <div class="navbar-inner container">
+      <a href="index.html" class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <circle cx="16" cy="16" r="10.5" stroke="currentColor" stroke-width="1.2" />
+          <path
+            d="M16 8c-2.5 3-2.5 13 0 16M16 8c2.5 3 2.5 13 0 16M6.5 16h19"
+            stroke="currentColor"
+            stroke-width="1"
+            opacity="0.6"
+          />
+        </svg>
+        VanRakshak AI
+      </a>
+
+      <button
+        class="nav-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="primary-nav-links"
+        aria-label="Toggle navigation menu"
+      >
+        <span class="bar-top"></span>
+        <span class="bar-mid"></span>
+        <span class="bar-bottom"></span>
+      </button>
+
+      <ul class="nav-links" id="primary-nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="index.html#about">About</a></li>
+        <li><a href="index.html#technology">Technology</a></li>
+        <li><a href="index.html#future">Future</a></li>
+        <li><a href="https://github.com/" target="_blank" rel="noopener noreferrer">Github</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <!-- ============ PAGE HERO ============ -->
+    <section class="upload-hero section">
+      <div class="container container--narrow text-center">
+        <p class="eyebrow reveal">Image Classification</p>
+        <h1 class="reveal anim-delay-1">Analyze Satellite Image</h1>
+        <p class="upload-hero-lead reveal anim-delay-2">
+          Upload a satellite image and VanRakshak AI will classify the land
+          cover shown — forest, water, cropland, urban, and more — with a
+          confidence score for the result.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ UPLOAD ============ -->
+    <section class="upload-section section--tight">
+      <div class="container container--narrow">
+        <div class="upload-panel card reveal">
+          <!-- Dropzone -->
+          <div
+            class="dropzone"
+            id="dropzone"
+            role="button"
+            tabindex="0"
+            aria-describedby="upload-formats upload-empty-state"
+          >
+            <svg class="dropzone-icon" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <path
+                d="M20 26V10M20 10l-6 6M20 10l6 6"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M8 26v3a3 3 0 0 0 3 3h18a3 3 0 0 0 3-3v-3"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+
+            <p class="dropzone-title">Drag &amp; Drop your satellite image</p>
+            <p class="upload-or">or</p>
+
+            <button class="btn btn-secondary" type="button" id="browse-btn">
+              Browse Files
+            </button>
+
+            <p class="dropzone-hint" id="upload-formats">Supported formats: JPG, JPEG, PNG · Max 20 MB</p>
+
+            <input
+              type="file"
+              id="file-input"
+              class="visually-hidden"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+              aria-label="Choose a satellite image file"
+            />
+          </div>
+
+          <!-- Validation / status message (announced to assistive tech) -->
+          <p class="upload-error" id="upload-error" role="alert" aria-live="assertive" hidden></p>
+
+          <!-- Empty state -->
+          <p class="upload-empty-state text-muted text-center" id="upload-empty-state">
+            No image selected
+          </p>
+
+          <!-- Preview state (hidden until a valid image is chosen) -->
+          <div class="upload-preview" id="upload-preview" hidden>
+            <div class="upload-preview-media image-frame image-frame--square">
+              <img id="preview-image" src="" alt="" />
+            </div>
+
+            <div class="upload-preview-details">
+              <dl class="upload-detail-list">
+                <div class="upload-detail-row">
+                  <dt>Filename</dt>
+                  <dd id="preview-filename">—</dd>
+                </div>
+                <div class="upload-detail-row">
+                  <dt>Dimensions</dt>
+                  <dd id="preview-dimensions">—</dd>
+                </div>
+                <div class="upload-detail-row">
+                  <dt>File size</dt>
+                  <dd id="preview-filesize">—</dd>
+                </div>
+              </dl>
+
+              <span class="badge badge-accent upload-ready-badge">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M3.5 8.5 6.5 11.5 12.5 4.5"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                Ready for analysis
+              </span>
+
+              <button class="btn btn-ghost btn-sm upload-remove-btn" type="button" id="remove-btn">
+                Remove Image
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="upload-actions">
+          <button class="btn btn-primary btn-lg" type="button" id="analyze-btn" disabled>
+            Analyze Image
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div>
+        <p class="footer-brand">VanRakshak AI</p>
+        <p class="footer-tagline">Protecting Forests Through Artificial Intelligence</p>
+      </div>
+
+      <div class="footer-links">
+        <a href="https://github.com/" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+            />
+          </svg>
+          GitHub
+        </a>
+      </div>
+
+      <p class="footer-copyright">
+        © <span id="current-year">2026</span> VanRakshak AI. All rights reserved.
+      </p>
+    </div>
+  </footer>
+
+  <script src="scripts/ui.js"></script>
+  <script src="scripts/upload.js"></script>
+</body>
+</html>

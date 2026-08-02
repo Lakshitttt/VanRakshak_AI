@@ -1,0 +1,274 @@
+/* =====================================================
+   VanRakshak AI — Animations
+   Reusable keyframes and animation utility classes only.
+   No component or layout styling lives here.
+   ===================================================== */
+
+/* -----------------------------------------------------
+   Keyframes
+   ----------------------------------------------------- */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slow-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* -----------------------------------------------------
+   Entrance animation utilities
+   Apply directly to an element to animate on render.
+   ----------------------------------------------------- */
+.anim-fade-in {
+  animation: fade-in var(--duration-slow) var(--ease-editorial) forwards;
+}
+
+.anim-fade-up {
+  animation: fade-up var(--duration-slow) var(--ease-editorial) forwards;
+}
+
+.anim-fade-down {
+  animation: fade-down var(--duration-slow) var(--ease-editorial) forwards;
+}
+
+.anim-slide-left {
+  animation: slide-in-left var(--duration-slow) var(--ease-editorial) forwards;
+}
+
+.anim-slide-right {
+  animation: slide-in-right var(--duration-slow) var(--ease-editorial) forwards;
+}
+
+.anim-scale-in {
+  animation: scale-in var(--duration-base) var(--ease-editorial) forwards;
+}
+
+/* Stagger helpers — pair with the entrance utilities above
+   on a sequence of elements to delay each one in turn. */
+.anim-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.anim-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.anim-delay-3 {
+  animation-delay: 0.3s;
+}
+
+.anim-delay-4 {
+  animation-delay: 0.4s;
+}
+
+.anim-delay-5 {
+  animation-delay: 0.5s;
+}
+
+/* -----------------------------------------------------
+   Scroll reveal
+   Paired with scripts/ui.js, which toggles `.is-visible`
+   on elements carrying `.reveal` as they enter the
+   viewport. Modifier classes choose the entrance style.
+   ----------------------------------------------------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity var(--transition-slow), transform var(--transition-slow);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal--scale {
+  transform: scale(0.96);
+}
+
+.reveal--scale.is-visible {
+  transform: scale(1);
+}
+
+.reveal--left {
+  transform: translateX(-32px);
+}
+
+.reveal--left.is-visible {
+  transform: translateX(0);
+}
+
+.reveal--right {
+  transform: translateX(32px);
+}
+
+.reveal--right.is-visible {
+  transform: translateX(0);
+}
+
+/* -----------------------------------------------------
+   Hover utilities
+   ----------------------------------------------------- */
+.hover-lift {
+  transition: transform var(--transition-base);
+}
+
+.hover-lift:hover {
+  transform: translateY(-6px);
+}
+
+.hover-grow {
+  transition: transform var(--transition-base);
+}
+
+.hover-grow:hover {
+  transform: scale(1.03);
+}
+
+.hover-fade {
+  transition: opacity var(--transition-fast);
+}
+
+.hover-fade:hover {
+  opacity: 0.75;
+}
+
+/* -----------------------------------------------------
+   Loading utilities
+   ----------------------------------------------------- */
+.is-loading {
+  animation: pulse 1.4s var(--ease-standard) infinite;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+.slow-rotate {
+  animation: slow-rotate 140s linear infinite;
+}
+
+/* -----------------------------------------------------
+   Page transition
+   Applied to the main content wrapper via scripts/ui.js
+   on load, so each page fades in as a single deliberate
+   moment rather than popping in unstyled.
+   ----------------------------------------------------- */
+.page-fade-in {
+  animation: fade-in var(--duration-slow) var(--ease-editorial) forwards;
+}
+
+/* -----------------------------------------------------
+   Reduced motion
+   Disables every animation and transition defined in this
+   design system for users who have requested it.
+   ----------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-in,
+  .anim-fade-up,
+  .anim-fade-down,
+  .anim-slide-left,
+  .anim-slide-right,
+  .anim-scale-in,
+  .reveal,
+  .reveal--scale,
+  .reveal--left,
+  .reveal--right,
+  .is-loading,
+  .slow-rotate,
+  .page-fade-in {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .hover-lift:hover,
+  .hover-grow:hover {
+    transform: none !important;
+  }
+}

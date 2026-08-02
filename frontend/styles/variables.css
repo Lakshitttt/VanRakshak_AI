@@ -1,0 +1,143 @@
+/* =====================================================
+   VanRakshak AI — Design Tokens
+   Single source of truth for every visual constant used
+   across the design system. No component styling here —
+   see base.css and components.css for that.
+   ===================================================== */
+
+:root {
+  /* -----------------------------------------------------
+     Colors
+     ----------------------------------------------------- */
+  --color-bg: #f7f3ea;
+  --color-bg-raised: #fbf9f4;
+  --color-primary: #254d32;
+  --color-secondary: #6b8f71;
+  --color-accent: #d6c6a5;
+  --color-dark: #1f2a1f;
+  --color-text: #2c2c2c;
+
+  --color-text-muted: rgba(44, 44, 44, 0.72);
+  --color-text-on-dark: #f7f3ea;
+  --color-text-on-dark-muted: rgba(247, 243, 234, 0.7);
+
+  --color-border: rgba(37, 77, 50, 0.14);
+  --color-border-strong: rgba(37, 77, 50, 0.28);
+  --color-border-on-dark: rgba(247, 243, 234, 0.2);
+
+  --color-surface: #ffffff;
+  --color-overlay: rgba(31, 42, 31, 0.5);
+
+  /* Semantic aliases (kept intentionally small — this is an
+     editorial system, not a status-heavy dashboard) */
+  --color-success: #3f6b4a;
+  --color-error: #8a3b2c;
+
+  /* -----------------------------------------------------
+     Typography
+     ----------------------------------------------------- */
+  --font-display: "Cormorant Garamond", "Iowan Old Style", serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --fs-display-xl: clamp(2.75rem, 2rem + 3.2vw, 4.75rem);
+  --fs-display-lg: clamp(2rem, 1.6rem + 1.6vw, 3rem);
+  --fs-display-md: clamp(1.5rem, 1.3rem + 0.8vw, 2rem);
+  --fs-display-sm: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+
+  --fs-lead: clamp(1.05rem, 0.98rem + 0.3vw, 1.25rem);
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-eyebrow: 0.8rem;
+  --fs-caption: 0.75rem;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --lh-tight: 1.15;
+  --lh-base: 1.6;
+  --lh-loose: 1.8;
+
+  --ls-eyebrow: 0.14em;
+  --ls-tight: -0.01em;
+
+  /* -----------------------------------------------------
+     Spacing scale
+     ----------------------------------------------------- */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.375rem;
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.75rem;
+  --space-lg: 3rem;
+  --space-xl: 5rem;
+  --space-2xl: 8rem;
+
+  /* -----------------------------------------------------
+     Border radius
+     ----------------------------------------------------- */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* -----------------------------------------------------
+     Shadow system
+     Tinted with the palette's dark green rather than pure
+     black, kept soft — no glow, no heavy elevation.
+     ----------------------------------------------------- */
+  --shadow-sm: 0 1px 2px rgba(31, 42, 31, 0.06);
+  --shadow-md: 0 6px 20px rgba(31, 42, 31, 0.08);
+  --shadow-lg: 0 16px 40px rgba(31, 42, 31, 0.12);
+  --shadow-inset: inset 0 0 0 1px rgba(31, 42, 31, 0.08);
+
+  /* -----------------------------------------------------
+     Container widths
+     ----------------------------------------------------- */
+  --container-width: 1180px;
+  --container-narrow: 860px;
+  --container-wide: 1400px;
+
+  /* -----------------------------------------------------
+     Transitions
+     ----------------------------------------------------- */
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --duration-fast: 0.2s;
+  --duration-base: 0.35s;
+  --duration-slow: 0.6s;
+
+  --transition-fast: var(--duration-fast) var(--ease-standard);
+  --transition-base: var(--duration-base) var(--ease-editorial);
+  --transition-slow: var(--duration-slow) var(--ease-editorial);
+
+  /* -----------------------------------------------------
+     Z-index scale
+     ----------------------------------------------------- */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-sticky: 150;
+  --z-overlay: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-max: 9999;
+
+  /* -----------------------------------------------------
+     Breakpoints
+     CSS custom properties cannot be read inside @media
+     conditions, so these exist as the documented, canonical
+     values. Every @media rule in this design system must use
+     these literal numbers so they stay in sync:
+       --bp-mobile:  640px
+       --bp-tablet:  1024px
+       --bp-desktop: 1280px
+     They are also read by scripts/ui.js via matchMedia for
+     JS that needs to branch on viewport size.
+     ----------------------------------------------------- */
+  --bp-mobile: 640px;
+  --bp-tablet: 1024px;
+  --bp-desktop: 1280px;
+}

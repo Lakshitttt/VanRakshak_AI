@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Select a Location — VanRakshak AI</title>
+  <meta
+    name="description"
+    content="Search or click anywhere on the map to select a location for VanRakshak AI environmental analysis."
+  />
+
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+  <!-- Google Fonts: Cormorant Garamond (display) + Inter (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Leaflet (OpenStreetMap tiles, no API key required) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Shared design system -->
+  <link rel="stylesheet" href="styles/variables.css" />
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/components.css" />
+  <link rel="stylesheet" href="styles/animations.css" />
+
+  <!-- Page-specific layout only -->
+  <link rel="stylesheet" href="styles/map.css" />
+</head>
+<body class="map-page">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="navbar">
+    <div class="navbar-inner container">
+      <a href="index.html" class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <circle cx="16" cy="16" r="10.5" stroke="currentColor" stroke-width="1.2" />
+          <path
+            d="M16 8c-2.5 3-2.5 13 0 16M16 8c2.5 3 2.5 13 0 16M6.5 16h19"
+            stroke="currentColor"
+            stroke-width="1"
+            opacity="0.6"
+          />
+        </svg>
+        VanRakshak AI
+      </a>
+
+      <button
+        class="nav-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="primary-nav-links"
+        aria-label="Toggle navigation menu"
+      >
+        <span class="bar-top"></span>
+        <span class="bar-mid"></span>
+        <span class="bar-bottom"></span>
+      </button>
+
+      <ul class="nav-links" id="primary-nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="upload.html">Upload</a></li>
+        <li><a href="map.html" aria-current="page">Map</a></li>
+        <li><a href="index.html#about">About</a></li>
+        <li><a href="https://github.com/" target="_blank" rel="noopener noreferrer">Github</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main id="main-content" class="map-main">
+    <div class="map-layout">
+      <!-- ============ MAP CANVAS ============ -->
+      <!-- Leaflet mounts into this element; sizing and positioning
+           context live in styles/map.css. -->
+      <div id="map" class="map-canvas" role="application" aria-label="Interactive location map"></div>
+
+      <!-- ============ SEARCH OVERLAY ============ -->
+      <div class="map-search anim-fade-in">
+        <form class="map-search-form" id="search-form" role="search" autocomplete="off">
+          <label class="visually-hidden" for="location-search">Search for a city or location</label>
+          <input
+            type="search"
+            id="location-search"
+            class="input map-search-input"
+            placeholder="Search for a city or place…"
+            aria-autocomplete="list"
+            aria-expanded="false"
+            aria-controls="search-results"
+            aria-activedescendant=""
+          />
+          <button class="btn btn-primary btn-sm map-search-btn" type="submit" aria-label="Search">
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4" />
+              <path d="M11 11 14.5 14.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+            </svg>
+          </button>
+        </form>
+
+        <ul class="map-search-results" id="search-results" role="listbox" hidden></ul>
+
+        <p class="map-search-status" id="search-status" role="status" aria-live="polite"></p>
+      </div>
+
+      <!-- ============ SIDEBAR ============ -->
+      <aside class="map-sidebar anim-fade-in anim-delay-1" aria-label="Selected location details">
+        <div class="map-sidebar-header">
+          <p class="eyebrow">Location Selection</p>
+          <h2>Selected Location</h2>
+          <p class="map-sidebar-lead text-muted">
+            Search for a place or click anywhere on the map to select a point.
+          </p>
+        </div>
+
+        <dl class="map-detail-list">
+          <div class="map-detail-row">
+            <dt>Latitude</dt>
+            <dd id="detail-latitude">—</dd>
+          </div>
+          <div class="map-detail-row">
+            <dt>Longitude</dt>
+            <dd id="detail-longitude">—</dd>
+          </div>
+          <div class="map-detail-row">
+            <dt>Zoom</dt>
+            <dd id="detail-zoom">—</dd>
+          </div>
+        </dl>
+
+        <p class="map-sidebar-hint text-muted" id="sidebar-hint">No location selected yet.</p>
+
+        <div class="map-sidebar-actions">
+          <button class="btn btn-primary" type="button" id="analyze-btn" disabled>
+            Analyze
+          </button>
+          <button class="btn btn-ghost" type="button" id="reset-btn">
+            Reset Marker
+          </button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Shared UI layer (nav toggle, etc.) -->
+  <script src="scripts/ui.js"></script>
+
+  <!-- Page-specific map logic -->
+  <script src="scripts/map.js"></script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+/* =====================================================
+   VanRakshak AI — Map Page
+   Page-specific layout only. All tokens come from
+   variables.css; all reusable components (.btn, .input,
+   .badge, .eyebrow, navbar) come from components.css.
+   Nothing here duplicates that system.
+   ===================================================== */
+
+/* -----------------------------------------------------
+   Utility (page-local — hides the visible <label> for the
+   search input while keeping it available to assistive tech)
+   ----------------------------------------------------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* -----------------------------------------------------
+   Fullscreen page shell
+   The navbar keeps its normal document height; everything
+   below it fills the remaining viewport so the map reads
+   as fullscreen without hardcoding a navbar height.
+   ----------------------------------------------------- */
+html.map-page,
+body.map-page {
+  height: 100%;
+}
+
+body.map-page {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.map-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+/* -----------------------------------------------------
+   Map layout
+   Desktop: map fills remaining width, sidebar is a fixed
+   right-hand column. Both sit inside one positioning
+   context so the search overlay can sit on top of the map.
+   ----------------------------------------------------- */
+.map-layout {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+}
+
+.map-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background-color: var(--color-border);
+}
+
+/* Leaflet's default marker/popup panes render above this
+   layout by design; keep the base map below our own UI
+   layers using the z-index scale from variables.css. */
+.map-canvas .leaflet-pane {
+  z-index: var(--z-base);
+}
+
+/* -----------------------------------------------------
+   Search overlay
+   Sits on top of the map's top-left corner.
+   ----------------------------------------------------- */
+.map-search {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  z-index: var(--z-overlay);
+  width: min(360px, calc(100% - var(--space-lg) - 340px));
+  background-color: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-sm);
+}
+
+.map-search-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.map-search-input {
+  flex: 1 1 auto;
+}
+
+.map-search-btn {
+  flex: 0 0 auto;
+  padding: 0.65rem 0.85rem;
+}
+
+.map-search-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.map-search-results {
+  margin-top: var(--space-xs);
+  max-height: 260px;
+  overflow-y: auto;
+  border-top: 1px solid var(--color-border);
+}
+
+.map-search-result {
+  padding: var(--space-xs) var(--space-2xs);
+  font-size: var(--fs-small);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.map-search-result:hover,
+.map-search-result.is-active {
+  background-color: rgba(37, 77, 50, 0.08);
+}
+
+.map-search-status {
+  margin-top: var(--space-2xs);
+  font-size: var(--fs-caption);
+  color: var(--color-text-muted);
+  min-height: 1em;
+}
+
+/* -----------------------------------------------------
+   Sidebar
+   ----------------------------------------------------- */
+.map-sidebar {
+  position: relative;
+  z-index: var(--z-dropdown);
+  height: 100%;
+  overflow-y: auto;
+  background-color: var(--color-bg-raised);
+  border-left: 1px solid var(--color-border);
+  padding: var(--space-lg) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.map-sidebar-header h2 {
+  font-size: var(--fs-display-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.map-sidebar-lead {
+  font-size: var(--fs-small);
+}
+
+.map-detail-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-block: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--fs-small);
+}
+
+.map-detail-row:last-child {
+  border-bottom: none;
+}
+
+.map-detail-row dt {
+  color: var(--color-text-muted);
+}
+
+.map-detail-row dd {
+  font-weight: var(--fw-medium);
+  color: var(--color-text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-sidebar-hint {
+  font-size: var(--fs-caption);
+  margin-top: calc(var(--space-lg) * -1 + var(--space-xs));
+}
+
+.map-sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: auto;
+}
+
+/* -----------------------------------------------------
+   Custom marker icon
+   Rendered by Leaflet as a divIcon; styled here so it
+   matches the palette instead of Leaflet's default pin.
+   ----------------------------------------------------- */
+.map-marker-icon svg {
+  display: block;
+  width: 32px;
+  height: 42px;
+}
+
+.map-marker-icon .marker-pin {
+  fill: var(--color-primary);
+  stroke: var(--color-bg);
+  stroke-width: 1.5;
+}
+
+.map-marker-icon .marker-dot {
+  fill: var(--color-bg);
+}
+
+/* -----------------------------------------------------
+   Responsive — stack sidebar below the map on narrow
+   viewports and shrink the search overlay to fit.
+   ----------------------------------------------------- */
+@media (max-width: 900px) {
+  .map-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  .map-sidebar {
+    height: auto;
+    max-height: 45vh;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .map-search {
+    width: calc(100% - var(--space-lg));
+  }
+}
+
+@media (max-width: 640px) {
+  .map-search {
+    top: var(--space-sm);
+    left: var(--space-sm);
+    right: var(--space-sm);
+    width: auto;
+  }
+
+  .map-sidebar {
+    padding: var(--space-md);
+  }
+}

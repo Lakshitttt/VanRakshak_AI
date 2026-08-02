@@ -6,7 +6,7 @@ intentionally minimal: it wires together configuration, logging, and
 middleware. No API routes, AI inference logic, or frontend logic live
 here — those are added in later tasks per the approved architecture.
 """
-
+from fastapi.middleware.cors import CORSMiddleware
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator

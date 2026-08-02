@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VanRakshak AI — Protecting Forests Through Artificial Intelligence</title>
+  <meta
+    name="description"
+    content="VanRakshak AI is an environmental intelligence platform that uses satellite imagery and artificial intelligence to monitor forests, land cover, and environmental change."
+  />
+
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+  <!-- Google Fonts: Cormorant Garamond (display) + Inter (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="styles/style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav container" aria-label="Primary">
+      <a href="#top" class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <circle cx="16" cy="16" r="10.5" stroke="currentColor" stroke-width="1.2" />
+          <path
+            d="M16 8c-2.5 3-2.5 13 0 16M16 8c2.5 3 2.5 13 0 16M6.5 16h19"
+            stroke="currentColor"
+            stroke-width="1"
+            opacity="0.6"
+          />
+        </svg>
+        VanRakshak AI
+      </a>
+
+      <button
+        class="nav-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="primary-nav-links"
+        aria-label="Toggle navigation menu"
+      >
+        <span class="bar-top"></span>
+        <span class="bar-mid"></span>
+        <span class="bar-bottom"></span>
+      </button>
+
+      <ul class="nav-links" id="primary-nav-links">
+        <li><a href="#top" aria-current="page">Home</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#technology">Technology</a></li>
+        <li><a href="#future">Future</a></li>
+        <li><a href="https://github.com/" target="_blank" rel="noopener noreferrer">Github</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main-content">
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="top">
+      <div class="container">
+        <div class="hero-copy">
+          <p class="eyebrow">Environmental Intelligence Platform</p>
+          <h1>Protecting Forests Through Artificial Intelligence</h1>
+          <p>
+            VanRakshak AI reads the landscape from orbit — turning satellite
+            imagery into clear, dependable readings of forest cover, land
+            use, and environmental change.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#">
+              Analyze Image
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path
+                  d="M3.5 8h9M8.5 3.5 13 8l-4.5 4.5"
+                  stroke="currentColor"
+                  stroke-width="1.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </a>
+            <a class="btn btn-secondary" href="#">Explore Map</a>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <svg
+            class="hero-illustration"
+            viewBox="0 0 480 480"
+            fill="none"
+            role="img"
+            aria-labelledby="hero-illustration-title"
+          >
+            <title id="hero-illustration-title">
+              Editorial line illustration of orbital monitoring rings, land
+              contours, and a forest canopy motif
+            </title>
+            <g stroke-linecap="round">
+              <!-- Orbit rings -->
+              <circle class="ring ring--outer" cx="240" cy="240" r="200" />
+              <circle class="ring ring--mid" cx="240" cy="240" r="150" stroke-dasharray="2 10" />
+              <circle class="ring ring--inner" cx="240" cy="240" r="100" />
+
+              <!-- Satellite nodes -->
+              <circle cx="240" cy="40" r="4" fill="var(--color-primary)" stroke="none" />
+              <circle cx="411" cy="330" r="4" fill="var(--color-accent)" stroke="none" />
+              <circle cx="90" cy="335" r="4" fill="var(--color-secondary)" stroke="none" />
+
+              <!-- Land contour lines -->
+              <ellipse class="contour" cx="240" cy="398" rx="150" ry="26" />
+              <ellipse class="contour" cx="240" cy="410" rx="112" ry="18" />
+              <ellipse class="contour" cx="240" cy="420" rx="72" ry="11" />
+
+              <!-- Botanical branch -->
+              <path
+                class="branch"
+                d="M240 320 C230 282 250 250 240 210 C232 180 250 160 240 130"
+              />
+              <path class="leaf-vein" d="M240 262 C220 252 205 232 199 212" />
+              <path class="leaf-vein" d="M240 262 C260 252 275 232 281 212" />
+              <path class="leaf-vein" d="M240 200 C222 195 207 180 201 165" />
+              <path class="leaf-vein" d="M240 200 C258 195 273 180 279 165" />
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="about" id="about">
+      <div class="container">
+        <div class="section-heading reveal">
+          <p class="eyebrow">What It Does</p>
+          <h2>Three capabilities, one reading of the land</h2>
+          <p>
+            Each capability builds on the last — from raw orbital imagery to
+            a classification the platform can act on and monitor over time.
+          </p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card reveal">
+            <svg class="feature-icon" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect x="15" y="15" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2" />
+              <path d="M20 15V8M20 32v-7M15 20H8M32 20h-7" stroke="currentColor" stroke-width="1.2" />
+              <path
+                d="M11 11 6 6M29 11l5-5M11 29l-5 5M29 29l5 5"
+                stroke="currentColor"
+                stroke-width="1"
+                opacity="0.6"
+              />
+            </svg>
+            <h3>Satellite Intelligence</h3>
+            <p>
+              Continuous orbital imagery gives the platform a consistent,
+              wide-area view of the landscape, refreshed as new passes
+              become available.
+            </p>
+          </article>
+
+          <article class="feature-card reveal">
+            <svg class="feature-icon" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect x="6" y="6" width="12" height="12" stroke="currentColor" stroke-width="1.2" />
+              <rect x="22" y="6" width="12" height="12" stroke="currentColor" stroke-width="1.2" opacity="0.5" />
+              <rect x="6" y="22" width="12" height="12" stroke="currentColor" stroke-width="1.2" opacity="0.5" />
+              <rect x="22" y="22" width="12" height="12" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+            <h3>AI Classification</h3>
+            <p>
+              A trained model reads each image and assigns a land-cover
+              class — forest, water, cropland, or urban — with a measured
+              confidence score.
+            </p>
+          </article>
+
+          <article class="feature-card reveal">
+            <svg class="feature-icon" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <path
+                d="M5 26c4-10 7-10 10-2s6 8 10-2 6-10 10-2"
+                stroke="currentColor"
+                stroke-width="1.3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="20" cy="20" r="16.5" stroke="currentColor" stroke-width="1" opacity="0.4" />
+            </svg>
+            <h3>Environmental Monitoring</h3>
+            <p>
+              Readings accumulate into a record the platform can track over
+              time, surfacing forest loss, water change, and urban
+              expansion as they happen.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TECHNOLOGY ============ -->
+    <section class="technology" id="technology">
+      <div class="container">
+        <div class="section-heading reveal">
+          <p class="eyebrow">How It Works</p>
+          <h2>From orbit to a finished report</h2>
+          <p>Every analysis follows the same disciplined sequence.</p>
+        </div>
+
+        <ol class="timeline">
+          <li class="timeline-step reveal" data-index="01">
+            <h3>Satellite</h3>
+            <p>Imagery is captured or supplied for a given area of interest.</p>
+          </li>
+          <li class="timeline-step reveal" data-index="02">
+            <h3>AI</h3>
+            <p>The ResNet50-based model classifies the land cover shown in the image.</p>
+          </li>
+          <li class="timeline-step reveal" data-index="03">
+            <h3>Analysis</h3>
+            <p>The result is scored for confidence and prepared for review.</p>
+          </li>
+          <li class="timeline-step reveal" data-index="04">
+            <h3>Report</h3>
+            <p>Findings are structured into a clear, shareable summary.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ FUTURE (anchor target for nav; content intentionally minimal) ============ -->
+    <section class="about" id="future" aria-labelledby="future-heading">
+      <div class="container">
+        <div class="section-heading reveal">
+          <p class="eyebrow">What's Next</p>
+          <h2 id="future-heading">Built to grow, one capability at a time</h2>
+          <p>
+            An interactive map, historical comparison, and downloadable
+            environmental reports are planned additions to this foundation.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <p class="footer-brand">VanRakshak AI</p>
+        <p class="footer-tagline">Protecting Forests Through Artificial Intelligence</p>
+      </div>
+
+      <div class="footer-links">
+        <a href="https://github.com/" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+            />
+          </svg>
+          GitHub
+        </a>
+      </div>
+
+      <p class="footer-copyright">
+        © <span id="current-year">2026</span> VanRakshak AI. All rights reserved.
+      </p>
+    </div>
+  </footer>
+
+  <script src="scripts/main.js"></script>
+</body>
+</html>

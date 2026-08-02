@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+.env
+
+# Logs
+logs/
+*.log
+
+# Python cache
+.pytest_cache/
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+
+# macOS
+.DS_Store
+
+# ML datasets
+ml/dataset/
+
+# ML checkpoints
+*.pth
+*.pt
+
+# Node
+node_modules/
+
+# Build
+dist/
+build/
+
+# Temporary
+*.tmp
+*.bak

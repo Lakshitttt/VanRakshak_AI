@@ -1,0 +1,747 @@
+/* =====================================================
+   VanRakshak AI — Landing Page Stylesheet
+   Editorial, minimal, premium environmental-tech aesthetic.
+   Pure CSS. No frameworks.
+   ===================================================== */
+
+/* -----------------------------------------------------
+   1. Design Tokens
+   ----------------------------------------------------- */
+:root {
+  /* Color palette */
+  --color-bg: #f7f3ea;
+  --color-primary: #254d32;
+  --color-secondary: #6b8f71;
+  --color-dark: #1f2a1f;
+  --color-accent: #d6c6a5;
+  --color-text: #2c2c2c;
+
+  --color-bg-raised: #fbf9f4;
+  --color-border: rgba(37, 77, 50, 0.14);
+  --color-border-strong: rgba(37, 77, 50, 0.28);
+
+  /* Typography */
+  --font-display: "Cormorant Garamond", "Iowan Old Style", serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --fs-hero: clamp(2.75rem, 2rem + 3.2vw, 4.75rem);
+  --fs-h2: clamp(2rem, 1.6rem + 1.6vw, 3rem);
+  --fs-h3: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+  --fs-lead: clamp(1.05rem, 0.98rem + 0.3vw, 1.25rem);
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-eyebrow: 0.8rem;
+
+  /* Spacing scale */
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.75rem;
+  --space-lg: 3rem;
+  --space-xl: 5rem;
+  --space-2xl: 8rem;
+
+  /* Layout */
+  --content-width: 1180px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+
+  /* Motion */
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-base: 0.6s;
+}
+
+/* -----------------------------------------------------
+   2. Reset
+   ----------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul {
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--color-dark);
+}
+
+/* Visible keyboard focus everywhere */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* Skip link for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: auto;
+  background: var(--color-dark);
+  color: var(--color-bg);
+  padding: var(--space-xs) var(--space-sm);
+  z-index: 100;
+}
+
+.skip-link:focus {
+  left: var(--space-sm);
+  top: var(--space-sm);
+}
+
+/* -----------------------------------------------------
+   3. Layout Utilities
+   ----------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding-inline: var(--space-lg);
+}
+
+.eyebrow {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.section-heading {
+  max-width: 640px;
+  margin-bottom: var(--space-xl);
+}
+
+.section-heading h2 {
+  font-size: var(--fs-h2);
+  margin-bottom: var(--space-sm);
+}
+
+.section-heading p {
+  font-size: var(--fs-lead);
+  color: var(--color-text);
+  opacity: 0.82;
+}
+
+/* -----------------------------------------------------
+   4. Buttons
+   ----------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 0.9rem 1.75rem;
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: transform var(--duration-base) var(--ease-editorial),
+    background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-bg);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-dark);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-primary);
+  border-color: var(--color-border-strong);
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-primary);
+  background-color: rgba(37, 77, 50, 0.06);
+  transform: translateY(-2px);
+}
+
+.btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* -----------------------------------------------------
+   5. Header / Navigation
+   ----------------------------------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background-color: rgba(247, 243, 234, 0.92);
+  backdrop-filter: saturate(140%) blur(6px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: var(--space-sm);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.brand-mark {
+  width: 26px;
+  height: 26px;
+  color: var(--color-primary);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.nav-links a {
+  position: relative;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--color-text);
+  padding-block: 0.25rem;
+}
+
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0%;
+  height: 1px;
+  background-color: var(--color-primary);
+  transition: width 0.3s var(--ease-editorial);
+}
+
+.nav-links a:hover::after,
+.nav-links a[aria-current="page"]::after {
+  width: 100%;
+}
+
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 32px;
+  height: 32px;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 100%;
+  height: 1.5px;
+  background-color: var(--color-dark);
+  transition: transform 0.3s var(--ease-editorial), opacity 0.3s ease;
+}
+
+.nav-toggle[aria-expanded="true"] .bar-top {
+  transform: translateY(6.5px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] .bar-mid {
+  opacity: 0;
+}
+
+.nav-toggle[aria-expanded="true"] .bar-bottom {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+/* -----------------------------------------------------
+   6. Hero
+   ----------------------------------------------------- */
+.hero {
+  padding-block: var(--space-2xl) var(--space-xl);
+}
+
+.hero .container {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  gap: var(--space-2xl);
+}
+
+.hero-copy h1 {
+  font-size: var(--fs-hero);
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-md);
+}
+
+.hero-copy p {
+  font-size: var(--fs-lead);
+  max-width: 46ch;
+  color: var(--color-text);
+  opacity: 0.85;
+  margin-bottom: var(--space-lg);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.hero-visual {
+  display: flex;
+  justify-content: center;
+}
+
+.hero-illustration {
+  width: 100%;
+  max-width: 460px;
+  height: auto;
+}
+
+.ring {
+  stroke: var(--color-secondary);
+  stroke-width: 1;
+  opacity: 0.55;
+  transform-origin: 240px 240px;
+}
+
+.ring--outer {
+  animation: slow-rotate 140s linear infinite;
+}
+
+.ring--mid {
+  stroke: var(--color-accent);
+  opacity: 0.8;
+}
+
+.ring--inner {
+  stroke: var(--color-primary);
+  opacity: 0.4;
+}
+
+.contour {
+  stroke: var(--color-primary);
+  stroke-width: 1;
+  opacity: 0.3;
+}
+
+.contour:nth-of-type(2) {
+  opacity: 0.4;
+}
+
+.contour:nth-of-type(3) {
+  opacity: 0.55;
+}
+
+.branch {
+  stroke: var(--color-dark);
+  stroke-width: 1.4;
+  opacity: 0.85;
+}
+
+.leaf-vein {
+  stroke: var(--color-primary);
+  stroke-width: 1;
+  opacity: 0.7;
+}
+
+/* -----------------------------------------------------
+   7. About / Feature Cards
+   ----------------------------------------------------- */
+.about {
+  padding-block: var(--space-xl);
+  border-top: 1px solid var(--color-border);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-lg);
+}
+
+.feature-card {
+  padding: var(--space-lg) var(--space-md);
+  background-color: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: transform var(--duration-base) var(--ease-editorial),
+    border-color 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--color-border-strong);
+}
+
+.feature-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--color-primary);
+  margin-bottom: var(--space-md);
+}
+
+.feature-card h3 {
+  margin-bottom: var(--space-xs);
+}
+
+.feature-card p {
+  font-size: var(--fs-small);
+  color: var(--color-text);
+  opacity: 0.78;
+}
+
+/* -----------------------------------------------------
+   8. Technology Timeline
+   ----------------------------------------------------- */
+.technology {
+  padding-block: var(--space-xl);
+  background-color: var(--color-dark);
+  color: var(--color-bg);
+}
+
+.technology .section-heading h2,
+.technology .section-heading p {
+  color: var(--color-bg);
+}
+
+.technology .section-heading p {
+  opacity: 0.7;
+}
+
+.technology .eyebrow {
+  color: var(--color-accent);
+}
+
+.timeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+
+.timeline-step {
+  position: relative;
+  padding-top: var(--space-lg);
+  border-top: 1px solid rgba(247, 243, 234, 0.2);
+}
+
+.timeline-step::before {
+  content: attr(data-index);
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  color: var(--color-accent);
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.timeline-step h3 {
+  color: var(--color-bg);
+  margin-bottom: var(--space-xs);
+}
+
+.timeline-step p {
+  font-size: var(--fs-small);
+  opacity: 0.65;
+}
+
+.timeline-connector {
+  display: none;
+}
+
+/* -----------------------------------------------------
+   9. Footer
+   ----------------------------------------------------- */
+.site-footer {
+  padding-block: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.footer-brand {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--color-dark);
+}
+
+.footer-tagline {
+  font-size: var(--fs-small);
+  opacity: 0.65;
+  margin-top: 0.15rem;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  font-size: var(--fs-small);
+}
+
+.footer-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.footer-links a:hover {
+  opacity: 1;
+}
+
+.footer-links svg {
+  width: 16px;
+  height: 16px;
+}
+
+.footer-copyright {
+  width: 100%;
+  font-size: var(--fs-small);
+  opacity: 0.55;
+  padding-top: var(--space-md);
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+
+/* -----------------------------------------------------
+   10. Scroll Reveal Animation
+   ----------------------------------------------------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity var(--duration-base) var(--ease-editorial),
+    transform var(--duration-base) var(--ease-editorial);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero-copy > * {
+  opacity: 0;
+  animation: fade-slide-up var(--duration-base) var(--ease-editorial) forwards;
+}
+
+.hero-copy .eyebrow {
+  animation-delay: 0.05s;
+}
+
+.hero-copy h1 {
+  animation-delay: 0.15s;
+}
+
+.hero-copy p {
+  animation-delay: 0.3s;
+}
+
+.hero-copy .hero-actions {
+  animation-delay: 0.45s;
+}
+
+.hero-visual {
+  opacity: 0;
+  animation: fade-in 0.9s var(--ease-editorial) forwards;
+  animation-delay: 0.3s;
+}
+
+@keyframes fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slow-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal,
+  .hero-copy > *,
+  .hero-visual {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .ring--outer {
+    animation: none !important;
+  }
+}
+
+/* -----------------------------------------------------
+   11. Responsive — Tablet
+   ----------------------------------------------------- */
+@media (max-width: 1024px) {
+  .container {
+    padding-inline: var(--space-md);
+  }
+
+  .hero .container {
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+  }
+
+  .hero-visual {
+    order: -1;
+  }
+
+  .hero-illustration {
+    max-width: 320px;
+  }
+
+  .feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .timeline {
+    grid-template-columns: repeat(2, 1fr);
+    row-gap: var(--space-lg);
+  }
+}
+
+/* -----------------------------------------------------
+   12. Responsive — Mobile
+   ----------------------------------------------------- */
+@media (max-width: 640px) {
+  :root {
+    --space-2xl: 4rem;
+    --space-xl: 3rem;
+  }
+
+  .nav-links {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+    background-color: var(--color-bg);
+    padding: var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    transform: translateY(-8px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
+  }
+
+  .nav-links.is-open {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+  }
+
+  .nav-toggle {
+    display: flex;
+  }
+
+  .hero {
+    padding-block: var(--space-xl) var(--space-lg);
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn {
+    justify-content: center;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

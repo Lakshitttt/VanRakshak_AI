@@ -79,7 +79,15 @@ class Settings(BaseSettings):
 
     # --- CORS ---
     CORS_ALLOWED_ORIGINS: List[str] = Field(
-        default=["http://localhost:8000", "http://127.0.0.1:8000"],
+        default=[
+            # Local frontend (development)
+            "http://localhost:5500",
+            "http://127.0.0.1:5500",
+
+            # Local backend docs/testing
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+        ],
         description="List of origins allowed to access the API.",
     )
 

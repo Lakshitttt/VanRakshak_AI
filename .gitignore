@@ -30,6 +30,7 @@ ml/dataset/
 
 # ML checkpoints
 *.pth
+!ml/models/best_resnet50.pth
 *.pt
 
 # Node

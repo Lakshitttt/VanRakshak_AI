@@ -5,7 +5,7 @@ import torch
 # -----------------------------
 # Dataset Path
 # -----------------------------
-DATASET_PATH = r"L:\Satellite_Deforestation_Project\dataset\EuroSAT"
+DATASET_PATH = r"L:\VanRakshak_AI\ml\dataset\EuroSAT"
 
 # -----------------------------
 # Image Transformations

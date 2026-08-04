@@ -21,7 +21,7 @@ from typing import Final, List, Optional
 # — a small, deliberately-sized crop, never a full ~110km Sentinel tile.
 DEFAULT_IMAGE_SIZE_PX: Final[int] = 224
 DEFAULT_BUFFER_METERS: Final[float] = DEFAULT_IMAGE_SIZE_PX * 10.0
-DEFAULT_DAYS_BACK: Final[int] = 30
+DEFAULT_DAYS_BACK: Final[int] = 90
 
 # Approximate meters per degree of latitude (WGS 84, good enough for the
 # small bounding boxes this subsystem requests).

@@ -5,8 +5,10 @@
  * OpenStreetMap tiles, a Nominatim-powered search box, click-to-place
  * marker, and a sidebar reflecting the current selection.
  *
- * This page is intentionally NOT connected to the AI backend yet.
- * "Analyze" only logs the selected coordinates to the console.
+ * "Analyze" sends the selected coordinates to the backend's
+ * POST /api/v1/location endpoint and shows the result in the sidebar.
+ * This page is still NOT connected to AI inference or imagery
+ * retrieval — only the coordinate-submission location API.
  */
 
 (function (window, document, L) {
@@ -28,6 +30,9 @@
   var TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
   var TILE_ATTRIBUTION =
     '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
+
+  var LOCATION_ENDPOINT = "http://127.0.0.1:8000/api/v1/location/select";
+  var LOCATION_REQUEST_TIMEOUT_MS = 15000; // 15 seconds
 
   /* -----------------------------------------------------
      State
@@ -180,8 +185,9 @@
   }
 
   /**
-   * Analyze button click handler. No backend call yet — logs the
-   * currently selected coordinates to the console only.
+   * Analyze button click handler: sends the currently selected
+   * coordinates to the location API. Does not call the AI model or
+   * retrieve imagery — this only submits the coordinate pair.
    */
   function handleAnalyzeClick() {
     if (!marker) {
@@ -189,11 +195,108 @@
     }
 
     var latlng = marker.getLatLng();
+    submitLocation(latlng.lat, latlng.lng);
+  }
 
-    console.log({
-      latitude: latlng.lat,
-      longitude: latlng.lng,
+  /**
+   * Run `fetch` with a hard timeout, aborting the request if it takes
+   * longer than `timeoutMs`. A timed-out request rejects with a
+   * DOMException named "AbortError", which callers can detect.
+   *
+   * @param {string} url
+   * @param {RequestInit} options
+   * @param {number} timeoutMs
+   * @returns {Promise<Response>}
+   */
+  function fetchWithTimeout(url, options, timeoutMs) {
+    var controller = new AbortController();
+    var timeoutId = window.setTimeout(function () {
+      controller.abort();
+    }, timeoutMs);
+
+    var requestOptions = Object.assign({}, options, { signal: controller.signal });
+
+    return fetch(url, requestOptions).finally(function () {
+      window.clearTimeout(timeoutId);
     });
+  }
+
+  /**
+   * Build an Error carrying the HTTP status code, so callers can branch
+   * on it without re-parsing the response.
+   *
+   * @param {number} status
+   * @returns {Error}
+   */
+  function createLocationHttpError(status) {
+    var error = new Error("Location request failed with status " + status);
+    error.status = status;
+    return error;
+  }
+
+  /**
+   * Translate a caught error (network failure, timeout, or HTTP error
+   * status) into a short, friendly message safe to show in the sidebar.
+   *
+   * @param {Error} error
+   * @returns {string}
+   */
+  function getFriendlyLocationErrorMessage(error) {
+    if (error && error.name === "AbortError") {
+      return "The request took too long and timed out. Please try again.";
+    }
+
+    if (error && typeof error.status === "number") {
+      if (error.status === 400) {
+        return "The server rejected these coordinates. Please choose a different point.";
+      }
+
+      if (error.status >= 500) {
+        return "The server ran into a problem. Please try again shortly.";
+      }
+
+      return "The request failed (status " + error.status + "). Please try again.";
+    }
+
+    return "Unable to reach the server. Please check your connection and try again.";
+  }
+
+  /**
+   * Send a coordinate pair to POST /api/v1/location and reflect the
+   * outcome in the sidebar hint. Re-enables the Analyze button once
+   * the request settles, regardless of outcome.
+   *
+   * @param {number} latitude
+   * @param {number} longitude
+   */
+  function submitLocation(latitude, longitude) {
+    setAnalyzeEnabled(false);
+    els.sidebarHint.textContent = "Sending location…";
+
+    fetchWithTimeout(
+      LOCATION_ENDPOINT,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitude: latitude, longitude: longitude }),
+      },
+      LOCATION_REQUEST_TIMEOUT_MS
+    )
+      .then(function (response) {
+        if (!response.ok) {
+          throw createLocationHttpError(response.status);
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        els.sidebarHint.textContent = data.message || "Coordinates received successfully.";
+      })
+      .catch(function (error) {
+        els.sidebarHint.textContent = getFriendlyLocationErrorMessage(error);
+      })
+      .finally(function () {
+        setAnalyzeEnabled(true);
+      });
   }
 
   /* -----------------------------------------------------

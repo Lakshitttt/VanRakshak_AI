@@ -25,3 +25,24 @@ class PredictionResponse(BaseModel):
 
     class_: str = Field(alias="class", description="Predicted land cover class.")
     confidence: float = Field(description="Confidence percentage, 0.0 to 100.0.")
+from typing import List, Dict, Any, Optional
+from datetime import datetime
+from pydantic import BaseModel
+
+class SatellitePredictionResponse(BaseModel):
+    """
+    Response schema specifically for the end-to-end satellite prediction endpoint.
+    Merges ML inference results with satellite acquisition metadata.
+    """
+    # ML Results
+    prediction: str
+    confidence: float
+    confidence_level: str
+    top3: List[Dict[str, Any]]
+    prediction_time: float
+    
+    # Satellite Metadata
+    acquisition_date: Optional[datetime]
+    provider: str
+    latitude: float
+    longitude: float

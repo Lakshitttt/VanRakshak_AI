@@ -25,6 +25,8 @@ from app.services.satellite.exceptions import (
 from app.services.satellite.models import RawSatelliteImage, SatelliteImageRequest
 from app.services.satellite.provider import SatelliteProvider
 
+from app.services.satellite.catalog import find_best_scene, CatalogScene
+
 logger = get_logger(__name__)
 
 # --- Sentinel Hub endpoints ---
@@ -33,46 +35,55 @@ TOKEN_URL: Final[str] = (
     "auth/realms/CDSE/protocol/openid-connect/token"
 )
 PROCESS_URL = "https://sh.dataspace.copernicus.eu/api/v1/process"
+
 # --- Request tuning ---
 REQUEST_TIMEOUT_SECONDS: Final[int] = 30
 TOKEN_EXPIRY_BUFFER_SECONDS: Final[int] = 60
 DEFAULT_TOKEN_TTL_SECONDS: Final[int] = 3600
 
 PROVIDER_NAME: Final[str] = "sentinel-hub"
-
-# Sentinel Hub returns this Content-Type for a single-output response;
-# used to detect the (already-handled) single-part case below.
 SINGLE_PART_CONTENT_TYPE: Final[str] = "image/png"
 
-# True-color Sentinel-2 L2A evalscript (Process API v3). The 2.5x gain
-# brightens raw reflectance values into a visually usable true-color
-# image — a standard, widely used Sentinel Hub evalscript pattern.
-#
-# `updateOutputMetadata` records the acquisition date of the scene(s)
-# Sentinel Hub selected for the mosaic. Per the Process API spec, the
-# resulting "userdata" JSON part is produced automatically from this
-# function as long as the request body's `output.responses` includes a
-# "userdata" identifier (see _build_process_request_body) — "userdata"
-# must NOT also be declared as an output here. Declaring it as a second
-# entry in `output` makes Sentinel Hub apply raster sample-type
-# validation to it, which fails because application/json supports no
-# sample type at all (the exact cause of the "Format application/json
-# does not support sample type AUTO" error).
+# --- Cloud-Masking & Median Compositing Evalscript ---
 EVALSCRIPT_TRUE_COLOR: Final[
     str
 ] = """
 //VERSION=3
 function setup() {
   return {
-    input: ["B04", "B03", "B02"],
-    output: { bands: 3, sampleType: "AUTO" }
+    input: ["B04", "B03", "B02", "SCL", "dataMask"],
+    output: { bands: 3, sampleType: "AUTO" },
+    mosaicking: "ORBIT"
   };
 }
-function evaluatePixel(sample) {
-  return [2.5 * sample.B04, 2.5 * sample.B03, 2.5 * sample.B02];
+
+function evaluatePixel(samples) {
+  var clearPixels = [];
+  
+  for (var i = 0; i < samples.length; i++) {
+    var sample = samples[i];
+    var isCloud = (sample.SCL === 3 || sample.SCL === 8 || sample.SCL === 9 || sample.SCL === 10);
+    
+    if (sample.dataMask === 1 && !isCloud) {
+      clearPixels.push(sample);
+    }
+  }
+
+  // Fallback: If all available pixels over this spot are cloudy, return the first one 
+  // to prevent returning a black array to ResNet.
+  if (clearPixels.length === 0) {
+     return [2.5 * samples[0].B04, 2.5 * samples[0].B03, 2.5 * samples[0].B02];
+  }
+
+  clearPixels.sort(function(a, b) { return a.B04 - b.B04; });
+  var medianIndex = Math.floor(clearPixels.length / 2);
+  var medianPixel = clearPixels[medianIndex];
+
+  return [2.5 * medianPixel.B04, 2.5 * medianPixel.B03, 2.5 * medianPixel.B02];
 }
+
 function updateOutputMetadata(scenes, inputMetadata, outputMetadata) {
-  var dates = (scenes.tiles || []).map(function (tile) { return tile.date; });
+  var dates = (scenes.orbits || []).map(function (orbit) { return orbit.dateFrom; });
   outputMetadata.userData = { acquisition_dates: dates };
 }
 """.strip()
@@ -81,21 +92,9 @@ function updateOutputMetadata(scenes, inputMetadata, outputMetadata) {
 class SentinelProvider(SatelliteProvider):
     """
     Satellite imagery provider backed by the Sentinel Hub Process API.
-
-    Retrieves a Sentinel-2 L2A true-color composite for the requested
-    bounding box, using least-cloud-cover mosaicking over the request's
-    lookback window so a single call can return a usable image without
-    a separate catalog search.
     """
 
     def __init__(self, client_id: Optional[str] = None, client_secret: Optional[str] = None) -> None:
-        """
-        Args:
-            client_id: Sentinel Hub OAuth2 client ID. Defaults to
-                `satellite_settings.SENTINEL_HUB_CLIENT_ID`.
-            client_secret: Sentinel Hub OAuth2 client secret. Defaults
-                to `satellite_settings.SENTINEL_HUB_CLIENT_SECRET`.
-        """
         self._client_id = client_id if client_id is not None else satellite_settings.SENTINEL_HUB_CLIENT_ID
         self._client_secret = (
             client_secret if client_secret is not None else satellite_settings.SENTINEL_HUB_CLIENT_SECRET
@@ -105,29 +104,36 @@ class SentinelProvider(SatelliteProvider):
 
     def fetch_image(self, request: SatelliteImageRequest) -> RawSatelliteImage:
         """
-        Retrieve a Sentinel-2 L2A true-color image covering the
-        requested location.
-
-        Args:
-            request: The coordinates, buffer, size, and lookback window
-                describing the image to retrieve.
-
-        Returns:
-            The raw image bytes and metadata returned by Sentinel Hub.
-
-        Raises:
-            SatelliteAuthenticationError: If OAuth2 authentication fails.
-            SatelliteImageRetrievalError: If the Process API request
-                fails, or the network is unreachable.
+        Retrieve a Sentinel-2 L2A true-color image covering the requested location.
         """
         access_token = self._get_access_token()
-        request_body = self._build_process_request_body(request)
+        
+        time_to = datetime.now(timezone.utc)
+        # Force a 90-day search window to ensure we always get a scene, even in monsoon season
+        time_from = time_to - timedelta(days=90)
+        
+        best_scene = find_best_scene(
+            access_token=access_token,
+            bbox=request.bounding_box().as_list(),
+            time_from=time_from,
+            time_to=time_to
+        )
+        
+        if not best_scene:
+            raise SatelliteImageRetrievalError(
+                "No suitable imagery found in the 90-day search window."
+            )
+
+        request_body = self._build_process_request_body(request, best_scene)
 
         try:
             response = requests.post(
                 PROCESS_URL,
                 json=request_body,
-                headers={"Authorization": f"Bearer {access_token}"},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "multipart/mixed"  # Prevents .tar payload bugs
+                },
                 timeout=REQUEST_TIMEOUT_SECONDS,
             )
         except requests.RequestException as exc:
@@ -159,28 +165,9 @@ class SentinelProvider(SatelliteProvider):
 
     @staticmethod
     def _parse_multipart_response(response: requests.Response) -> Tuple[Optional[bytes], Optional[Dict[str, Any]]]:
-        """
-        Split a Sentinel Hub Process API response into its image bytes
-        and (if present) its `userdata.json` metadata part.
-
-        Requesting more than one output (here: the image and a
-        `userdata` JSON part) makes Sentinel Hub return a
-        `multipart/form-data` response instead of a plain image body.
-        Python's stdlib `email` module can parse that format directly
-        by treating the response as a MIME message, once its
-        Content-Type header is attached to the raw bytes.
-
-        Args:
-            response: The raw HTTP response from the Process API.
-
-        Returns:
-            A `(image_bytes, user_data)` tuple. Either element may be
-            `None` if that part was missing or unparsable.
-        """
         content_type = response.headers.get("Content-Type", "")
 
         if not content_type.startswith("multipart"):
-            # A single-output response is just the image body as-is.
             return response.content, None
 
         mime_message = email.message_from_bytes(
@@ -207,22 +194,6 @@ class SentinelProvider(SatelliteProvider):
 
     @staticmethod
     def _extract_acquisition_date(user_data: Optional[Dict[str, Any]]) -> Optional[datetime]:
-        """
-        Best-effort extraction of an acquisition date from the
-        `userdata.json` part produced by `EVALSCRIPT_TRUE_COLOR`'s
-        `updateOutputMetadata` function.
-
-        Returns `None` (rather than raising) if the metadata is
-        missing or in an unexpected shape — the acquisition date is
-        "if available" information, not required for the image itself
-        to be valid.
-
-        Args:
-            user_data: The parsed `userdata.json` payload, if any.
-
-        Returns:
-            The acquisition date as a timezone-aware datetime, or None.
-        """
         if not user_data:
             return None
 
@@ -236,17 +207,6 @@ class SentinelProvider(SatelliteProvider):
             return None
 
     def _get_access_token(self) -> str:
-        """
-        Return a cached OAuth2 access token, requesting a new one if
-        none is cached yet or the cached token is near expiry.
-
-        Returns:
-            A valid Sentinel Hub bearer access token.
-
-        Raises:
-            SatelliteAuthenticationError: If credentials are missing or
-                the token request fails.
-        """
         now = time.time()
 
         if self._access_token and now < (self._token_expires_at - TOKEN_EXPIRY_BUFFER_SECONDS):
@@ -287,21 +247,12 @@ class SentinelProvider(SatelliteProvider):
         logger.info("Obtained new Sentinel Hub access token.")
         return self._access_token
 
-    def _build_process_request_body(self, request: SatelliteImageRequest) -> Dict[str, Any]:
-        """
-        Build the Sentinel Hub Process API request body for the given
-        image request.
-
-        Args:
-            request: The coordinates, buffer, size, and lookback window
-                describing the image to retrieve.
-
-        Returns:
-            The JSON-serializable Process API request body.
-        """
+    def _build_process_request_body(self, request: SatelliteImageRequest, best_scene: CatalogScene) -> Dict[str, Any]:
         bounding_box = request.bounding_box()
-        time_to = datetime.now(timezone.utc)
-        time_from = time_to - timedelta(days=request.days_back)
+        
+        scene_date = best_scene.acquisition_date
+        time_from = scene_date - timedelta(days=1)
+        time_to = scene_date + timedelta(days=1)
 
         return {
             "input": {
@@ -316,8 +267,7 @@ class SentinelProvider(SatelliteProvider):
                             "timeRange": {
                                 "from": time_from.strftime("%Y-%m-%dT%H:%M:%SZ"),
                                 "to": time_to.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                            },
-                            "mosaickingOrder": "leastCC",
+                            }
                         },
                     }
                 ],

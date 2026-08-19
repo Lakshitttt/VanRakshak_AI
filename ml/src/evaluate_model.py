@@ -27,8 +27,7 @@ print(f"Using device: {device}")
 # Load Model
 # ============================================================
 
-MODEL_PATH = "../models/best_resnet50.pth"
-
+MODEL_PATH = "models/best_resnet50.pth"
 model = create_model().to(device)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
 model.eval()

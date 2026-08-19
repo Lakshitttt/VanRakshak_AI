@@ -81,3 +81,6 @@ ml/src/*.png
 # Jupyter
 # ==========================================================
 .ipynb_checkpoints/
+
+# ML evaluation outputs
+ml/results/

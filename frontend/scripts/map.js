@@ -6,9 +6,8 @@
  * marker, and a sidebar reflecting the current selection.
  *
  * "Analyze" sends the selected coordinates to the backend's
- * POST /api/v1/location endpoint and shows the result in the sidebar.
- * This page is still NOT connected to AI inference or imagery
- * retrieval — only the coordinate-submission location API.
+ * POST /api/v1/satellite-predict endpoint, which downloads Sentinel
+ * imagery and returns AI inference results to render in the sidebar.
  */
 
 (function (window, document, L) {
@@ -31,8 +30,15 @@
   var TILE_ATTRIBUTION =
     '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
 
-  var LOCATION_ENDPOINT = "http://127.0.0.1:8000/api/v1/location/select";
-  var LOCATION_REQUEST_TIMEOUT_MS = 15000; // 15 seconds
+  var PREDICT_ENDPOINT = "http://127.0.0.1:8000/api/v1/satellite-predict/";
+  var PREDICT_REQUEST_TIMEOUT_MS = 60000; // ~60 seconds — satellite search + download + inference can take a while
+
+  var LOADING_MESSAGES = [
+    "Searching Sentinel imagery…",
+    "Downloading image…",
+    "Running AI model…",
+  ];
+  var LOADING_MESSAGE_INTERVAL_MS = 4000;
 
   /* -----------------------------------------------------
      State
@@ -42,6 +48,8 @@
   var searchResults = [];
   var activeResultIndex = -1;
   var searchDebounceTimer = null;
+  var loadingMessageTimer = null;
+  var loadingMessageIndex = 0;
 
   /* -----------------------------------------------------
      Element references (populated in init)
@@ -64,6 +72,7 @@
     els.sidebarHint = document.getElementById("sidebar-hint");
     els.analyzeBtn = document.getElementById("analyze-btn");
     els.resetBtn = document.getElementById("reset-btn");
+    els.predictionResults = document.getElementById("prediction-results");
   }
 
   /* -----------------------------------------------------
@@ -134,6 +143,7 @@
       marker = L.marker(latlng, { icon: buildMarkerIcon() }).addTo(map);
     }
 
+    clearPredictionResults();
     updateSidebar(latlng);
     setAnalyzeEnabled(true);
   }
@@ -152,6 +162,8 @@
     els.detailLongitude.textContent = "—";
     els.sidebarHint.textContent = "No location selected yet.";
 
+    stopLoadingMessages();
+    clearPredictionResults();
     setAnalyzeEnabled(false);
   }
 
@@ -186,8 +198,7 @@
 
   /**
    * Analyze button click handler: sends the currently selected
-   * coordinates to the location API. Does not call the AI model or
-   * retrieve imagery — this only submits the coordinate pair.
+   * coordinates to the location API.
    */
   function handleAnalyzeClick() {
     if (!marker) {
@@ -195,7 +206,7 @@
     }
 
     var latlng = marker.getLatLng();
-    submitLocation(latlng.lat, latlng.lng);
+    requestPrediction(latlng.lat, latlng.lng);
   }
 
   /**
@@ -228,7 +239,7 @@
    * @param {number} status
    * @returns {Error}
    */
-  function createLocationHttpError(status) {
+  function createPredictionHttpError(status) {
     var error = new Error("Location request failed with status " + status);
     error.status = status;
     return error;
@@ -241,7 +252,7 @@
    * @param {Error} error
    * @returns {string}
    */
-  function getFriendlyLocationErrorMessage(error) {
+  function getFriendlyPredictionErrorMessage(error) {
     if (error && error.name === "AbortError") {
       return "The request took too long and timed out. Please try again.";
     }
@@ -262,41 +273,164 @@
   }
 
   /**
-   * Send a coordinate pair to POST /api/v1/location and reflect the
-   * outcome in the sidebar hint. Re-enables the Analyze button once
-   * the request settles, regardless of outcome.
+   * Send a coordinate pair to POST /api/v1/satellite-predict/ and reflect the
+   * outcome in the sidebar.
    *
    * @param {number} latitude
    * @param {number} longitude
    */
-  function submitLocation(latitude, longitude) {
+  function requestPrediction(latitude, longitude) {
     setAnalyzeEnabled(false);
-    els.sidebarHint.textContent = "Sending location…";
+    clearPredictionResults();
+    startLoadingMessages();
 
     fetchWithTimeout(
-      LOCATION_ENDPOINT,
+      PREDICT_ENDPOINT,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ latitude: latitude, longitude: longitude }),
       },
-      LOCATION_REQUEST_TIMEOUT_MS
+      PREDICT_REQUEST_TIMEOUT_MS
     )
       .then(function (response) {
         if (!response.ok) {
-          throw createLocationHttpError(response.status);
+          throw createPredictionHttpError(response.status);
         }
         return response.json();
       })
       .then(function (data) {
-        els.sidebarHint.textContent = data.message || "Coordinates received successfully.";
+        renderPredictionResults(data);
+        els.sidebarHint.textContent = "Analysis complete.";
       })
       .catch(function (error) {
-        els.sidebarHint.textContent = getFriendlyLocationErrorMessage(error);
+        els.sidebarHint.textContent = getFriendlyPredictionErrorMessage(error);
       })
       .finally(function () {
+        stopLoadingMessages();
         setAnalyzeEnabled(true);
       });
+  }
+
+  function startLoadingMessages() {
+    loadingMessageIndex = 0;
+    els.sidebarHint.textContent = LOADING_MESSAGES[loadingMessageIndex];
+
+    loadingMessageTimer = window.setInterval(function () {
+      loadingMessageIndex = (loadingMessageIndex + 1) % LOADING_MESSAGES.length;
+      els.sidebarHint.textContent = LOADING_MESSAGES[loadingMessageIndex];
+    }, LOADING_MESSAGE_INTERVAL_MS);
+  }
+
+  function stopLoadingMessages() {
+    if (loadingMessageTimer) {
+      window.clearInterval(loadingMessageTimer);
+      loadingMessageTimer = null;
+    }
+  }
+
+  function renderPredictionResults(data) {
+    clearPredictionResults();
+
+    if (!els.predictionResults) {
+      return;
+    }
+
+    var card = document.createElement("div");
+    card.className = "card";
+
+    var eyebrow = document.createElement("p");
+    eyebrow.className = "eyebrow";
+    eyebrow.textContent = "Analysis Result";
+    card.appendChild(eyebrow);
+
+    var heading = document.createElement("h3");
+    heading.textContent = data.prediction || "—";
+    heading.style.marginBottom = "var(--space-xs)";
+    card.appendChild(heading);
+
+    var detailList = document.createElement("dl");
+    detailList.className = "map-detail-list";
+    detailList.appendChild(buildDetailRow("Confidence", formatPercent(data.confidence)));
+    detailList.appendChild(buildDetailRow("Confidence Level", buildConfidenceBadge(data.confidence_level)));
+    detailList.appendChild(buildDetailRow("Acquisition Date", formatAcquisitionDate(data.acquisition_date)));
+    detailList.appendChild(buildDetailRow("Provider", data.provider || "—"));
+    card.appendChild(detailList);
+
+    if (Array.isArray(data.top3) && data.top3.length > 0) {
+      var top3Heading = document.createElement("p");
+      top3Heading.className = "eyebrow";
+      top3Heading.textContent = "Top 3 Predictions";
+      top3Heading.style.marginTop = "var(--space-md)";
+      card.appendChild(top3Heading);
+
+      var top3List = document.createElement("dl");
+      top3List.className = "map-detail-list";
+
+      data.top3.forEach(function (entry, index) {
+        top3List.appendChild(
+          buildDetailRow(index + 1 + ". " + entry.class, formatPercent(entry.confidence))
+        );
+      });
+
+      card.appendChild(top3List);
+    }
+
+    els.predictionResults.appendChild(card);
+    els.predictionResults.hidden = false;
+  }
+
+  function clearPredictionResults() {
+    if (els.predictionResults) {
+      els.predictionResults.innerHTML = "";
+      els.predictionResults.hidden = true;
+    }
+  }
+
+  function buildDetailRow(label, value) {
+    var row = document.createElement("div");
+    row.className = "map-detail-row";
+
+    var term = document.createElement("dt");
+    term.textContent = label;
+
+    var description = document.createElement("dd");
+    if (value instanceof Node) {
+      description.appendChild(value);
+    } else {
+      description.textContent = value;
+    }
+
+    row.appendChild(term);
+    row.appendChild(description);
+    return row;
+  }
+
+  function buildConfidenceBadge(level) {
+    var badge = document.createElement("span");
+    badge.className = "badge badge-accent";
+    badge.textContent = level || "—";
+    return badge;
+  }
+
+  function formatPercent(value) {
+    var numeric = Number(value);
+    var formatted = isNaN(numeric) ? String(value) : numeric.toFixed(2);
+    return formatted + "%";
+  }
+
+  function formatAcquisitionDate(value) {
+    if (!value) {
+      return "—";
+    }
+
+    var date = new Date(value);
+
+    if (isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
   }
 
   /* -----------------------------------------------------

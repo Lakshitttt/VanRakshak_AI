@@ -203,7 +203,6 @@ body.map-page {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  margin-top: auto;
 }
 
 /* -----------------------------------------------------

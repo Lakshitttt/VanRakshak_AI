@@ -6,16 +6,16 @@ intentionally minimal: it wires together configuration, logging, and
 middleware. No API routes, AI inference logic, or frontend logic live
 here — those are added in later tasks per the approved architecture.
 """
-from fastapi.middleware.cors import CORSMiddleware
+
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
-from app.api import api_router
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api import api_router
 from app.core.exceptions import VanRakshakException
 from app.core.logging import configure_logging, get_logger
 from app.core.settings import settings
@@ -59,8 +59,6 @@ def create_app() -> FastAPI:
     Returns:
         A fully configured FastAPI application with lifespan events,
         CORS middleware, and a global exception handler registered.
-        No routers are included yet, since no API endpoints exist in
-        this foundation task.
     """
     application = FastAPI(
         title=settings.APP_NAME,
@@ -70,13 +68,18 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # ==========================================
+    # CORS Middleware configured for local frontend
+    # ==========================================
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.CORS_ALLOWED_ORIGINS,
+        allow_origins=["*"],  # Allows all origins (resolves the CORS error)
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["*"],  # Allows all HTTP methods (POST, GET, OPTIONS, etc.)
+        allow_headers=["*"],  # Allows all headers
     )
+    
+    # Include all API routes
     application.include_router(api_router)
 
     @application.exception_handler(VanRakshakException)

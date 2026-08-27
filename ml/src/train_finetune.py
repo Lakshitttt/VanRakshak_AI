@@ -3,50 +3,79 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from model import create_model
-from data import train_loader, val_loader
+from ml.src.model import create_finetune_model
+from ml.src.data import train_loader, val_loader
 
-# -----------------------------
+
+# ------------------------------------------------------------
 # Device
-# -----------------------------
+# ------------------------------------------------------------
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"\nUsing Device: {device}")
 
-# -----------------------------
+
+# ------------------------------------------------------------
 # Model
-# -----------------------------
-model = create_model().to(device)
-print("ResNet50 loaded successfully!\n")
+# ------------------------------------------------------------
+
+model = create_finetune_model().to(device)
+
+print("ResNet50 fine-tuning model loaded successfully!\n")
+
+# Show trainable parameters
+trainable_params = sum(
+    p.numel() for p in model.parameters()
+    if p.requires_grad
+)
+
+total_params = sum(
+    p.numel() for p in model.parameters()
+)
+
+print(f"Trainable parameters: {trainable_params:,}")
+print(f"Total parameters:     {total_params:,}")
+
+
+# ------------------------------------------------------------
+# Loss
+# ------------------------------------------------------------
 
 criterion = nn.CrossEntropyLoss()
 
+
+# ------------------------------------------------------------
+# Optimizer
+# ------------------------------------------------------------
+
 optimizer = optim.Adam(
-    model.fc.parameters(),
-    lr=0.001
+    filter(lambda p: p.requires_grad, model.parameters()),
+    lr=1e-4
 )
 
-epochs = 5
 
-train_loss_history = []
-train_acc_history = []
+# ------------------------------------------------------------
+# Training configuration
+# ------------------------------------------------------------
 
-val_loss_history = []
-val_acc_history = []
+epochs = 10
 
 best_val_accuracy = 0.0
 best_model_weights = copy.deepcopy(model.state_dict())
 
-# ===========================================================
-# TRAINING
-# ===========================================================
+
+# ------------------------------------------------------------
+# Training
+# ------------------------------------------------------------
 
 for epoch in range(epochs):
 
-    print(f"\n========== Epoch {epoch+1}/{epochs} ==========\n")
+    print(f"\n========== Epoch {epoch + 1}/{epochs} ==========\n")
 
-    # -----------------------------
+    # --------------------------------------------------------
     # TRAIN
-    # -----------------------------
+    # --------------------------------------------------------
+
     model.train()
 
     running_loss = 0.0
@@ -77,19 +106,17 @@ for epoch in range(epochs):
 
         if (batch_idx + 1) % 50 == 0 or (batch_idx + 1) == len(train_loader):
             print(
-                f"Train Batch [{batch_idx+1}/{len(train_loader)}] "
+                f"Train Batch [{batch_idx + 1}/{len(train_loader)}] "
                 f"Loss: {loss.item():.4f}"
             )
 
     train_loss = running_loss / len(train_loader)
     train_accuracy = 100 * correct / total
 
-    train_loss_history.append(train_loss)
-    train_acc_history.append(train_accuracy)
-
-    # -----------------------------
+    # --------------------------------------------------------
     # VALIDATION
-    # -----------------------------
+    # --------------------------------------------------------
+
     model.eval()
 
     val_running_loss = 0.0
@@ -117,34 +144,31 @@ for epoch in range(epochs):
     val_loss = val_running_loss / len(val_loader)
     val_accuracy = 100 * val_correct / val_total
 
-    val_loss_history.append(val_loss)
-    val_acc_history.append(val_accuracy)
-
     print("\nEpoch Summary")
     print(f"Train Loss : {train_loss:.4f}")
     print(f"Train Acc  : {train_accuracy:.2f}%")
     print(f"Val Loss   : {val_loss:.4f}")
     print(f"Val Acc    : {val_accuracy:.2f}%")
 
-    # -----------------------------
-    # SAVE BEST MODEL
-    # -----------------------------
+    # --------------------------------------------------------
+    # SAVE BEST FINE-TUNED MODEL
+    # --------------------------------------------------------
+
     if val_accuracy > best_val_accuracy:
 
         best_val_accuracy = val_accuracy
         best_model_weights = copy.deepcopy(model.state_dict())
 
-        torch.save(best_model_weights, "../models/best_resnet50.pth")
+        torch.save(
+            best_model_weights,
+            "../models/indian_resnet50_finetuned.pth"
+        )
 
-        print("✅ Best model updated!")
+        print("✅ Best fine-tuned model updated!")
 
-# -----------------------------
-# Save Final Model
-# -----------------------------
-torch.save(model.state_dict(), "../models/final_resnet50.pth")
 
 print("\n================================")
-print("Training Complete!")
+print("Fine-Tuning Complete!")
 print(f"Best Validation Accuracy: {best_val_accuracy:.2f}%")
 print("Best model saved to:")
-print("models/best_resnet50.pth")
+print("../models/indian_resnet50_finetuned.pth")

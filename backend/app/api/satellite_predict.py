@@ -20,6 +20,14 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from fastapi import APIRouter, HTTPException
+from app.services.satellite.exceptions import (
+    SatelliteError,
+    SatelliteAuthenticationError,
+    SatelliteQuotaError,
+    SatelliteNetworkError,
+    SatelliteServiceError,
+    NoSatelliteImageryAvailableError,
+)
 
 # Schemas
 from app.schemas.location import LocationRequest
@@ -78,8 +86,78 @@ def predict_from_satellite(request_data: LocationRequest):
         )
 
     except HTTPException:
-        # Re-raise standard FastAPI HTTP exceptions to preserve their status codes
+        # Re-raise standard FastAPI HTTP exceptions unchanged.
         raise
+
+    except SatelliteAuthenticationError as e:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error": "SATELLITE_AUTHENTICATION_ERROR",
+                "message": str(e),
+            },
+        ) from e
+
+    except SatelliteQuotaError as e:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "SATELLITE_QUOTA_ERROR",
+                "message": str(e),
+            },
+        ) from e
+
+    except SatelliteNetworkError as e:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "SATELLITE_NETWORK_ERROR",
+                "message": str(e),
+            },
+        ) from e
+
+    except SatelliteServiceError as e:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "SATELLITE_SERVICE_ERROR",
+                "message": str(e),
+            },
+        ) from e
+
+    except NoSatelliteImageryAvailableError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": "NO_SATELLITE_IMAGERY",
+                "message": str(e),
+            },
+        ) from e
+
+    except SatelliteError as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "SATELLITE_ERROR",
+                "message": str(e),
+            },
+        ) from e
+
     except Exception as e:
-        # Catch and surface any unhandled errors from the pipeline
-        raise HTTPException(status_code=500, detail=f"Satellite Prediction Pipeline Error: {str(e)}")
+        import traceback
+
+        print("\n" + "=" * 60)
+        print("SATELLITE PIPELINE ERROR")
+        print("Exception Type :", type(e).__name__)
+        print("Exception      :", str(e))
+        print("-" * 60)
+        traceback.print_exc()
+        print("=" * 60 + "\n")
+
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected error occurred in the satellite prediction pipeline.",
+            },
+        ) from e

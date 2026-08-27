@@ -13,14 +13,17 @@ so token acquisition and caching stays in exactly one place.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Final, List, Optional
 
 import requests
 
 from app.core.logging import get_logger
-from app.services.satellite.exceptions import SatelliteImageRetrievalError
-
+from app.services.satellite.exceptions import (
+    SatelliteImageRetrievalError,
+    SatelliteQuotaError,
+    SatelliteNetworkError,
+)
 logger = get_logger(__name__)
 
 # --- Copernicus Data Space Catalog API (STAC) ---
@@ -92,15 +95,31 @@ def find_best_scene(
             timeout=CATALOG_REQUEST_TIMEOUT_SECONDS,
         )
     except requests.RequestException as exc:
-        raise SatelliteImageRetrievalError(
-            "Unable to reach the Sentinel-2 Catalog API.",
+        raise SatelliteNetworkError(
+            "Unable to reach the Sentinel-2 Catalog API. Please check your internet connection and try again.",
             details=str(exc),
         ) from exc
 
+    if response.status_code == 401:
+        raise SatelliteAuthenticationError(
+            "Sentinel Hub authentication was rejected while accessing the Catalog API."
+        )
+
+    if response.status_code == 403:
+        raise SatelliteQuotaError(
+            "Sentinel Hub quota or processing-unit limit has been reached. "
+            "Please check your Sentinel Hub account quota or try again later."
+        )
+
+    if response.status_code >= 500:
+        raise SatelliteServiceError(
+            f"Sentinel Hub Catalog API is temporarily unavailable "
+            f"(status {response.status_code}). Please try again later."
+        )
+
     if response.status_code != 200:
         raise SatelliteImageRetrievalError(
-            f"Catalog API returned status {response.status_code} while searching for scenes.",
-            details=response.text[:500],
+            f"Catalog API returned status {response.status_code} while searching for scenes."
         )
 
     scenes = _parse_scenes(response.json())
@@ -177,13 +196,21 @@ def _to_iso(value: datetime) -> str:
 
 
 def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
-    """Best-effort parse of a STAC feature's `datetime` property."""
+    """Best-effort parse of a STAC feature's datetime property."""
     if not value:
         return None
+
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return datetime.strptime(
+            value,
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+        ).replace(tzinfo=timezone.utc)
+
     except (TypeError, ValueError):
-        logger.warning("Could not parse an acquisition datetime from the Catalog API: %r", value)
+        logger.warning(
+            "Could not parse an acquisition datetime from the Catalog API: %r",
+            value,
+        )
         return None
 
 

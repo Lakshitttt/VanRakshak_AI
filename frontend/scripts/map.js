@@ -239,9 +239,13 @@
    * @param {number} status
    * @returns {Error}
    */
-  function createPredictionHttpError(status) {
-    var error = new Error("Location request failed with status " + status);
+  function createPredictionHttpError(status, data) {
+    var message = "Location request failed with status " + status;
+    var error = new Error(message);
+
     error.status = status;
+    error.apiError = data && data.detail ? data.detail : null;
+
     return error;
   }
 
@@ -254,7 +258,40 @@
    */
   function getFriendlyPredictionErrorMessage(error) {
     if (error && error.name === "AbortError") {
-      return "The request took too long and timed out. Please try again.";
+      return "The satellite request timed out. Please check your connection and try again.";
+    }
+
+    if (error && error.apiError) {
+      var apiError = error.apiError;
+
+      if (typeof apiError === "object") {
+        switch (apiError.error) {
+          case "SATELLITE_NETWORK_ERROR":
+            return "Internet connection problem. Please check your connection and try again.";
+
+          case "SATELLITE_QUOTA_ERROR":
+            return "Sentinel Hub processing quota has been exhausted. Please try again later or check your Sentinel Hub account.";
+
+          case "SATELLITE_AUTHENTICATION_ERROR":
+            return "Satellite authentication failed. Please check the Sentinel Hub credentials.";
+
+          case "SATELLITE_SERVICE_ERROR":
+            return "Sentinel Hub is temporarily unavailable. Please try again later.";
+
+          case "NO_SATELLITE_IMAGERY":
+            return "No suitable satellite imagery is available for this location.";
+
+          case "SATELLITE_ERROR":
+            return apiError.message || "A satellite processing error occurred. Please try again.";
+
+          default:
+            return apiError.message || "The satellite analysis failed. Please try again.";
+        }
+      }
+
+      if (typeof apiError === "string") {
+        return apiError;
+      }
     }
 
     if (error && typeof error.status === "number") {
@@ -262,8 +299,16 @@
         return "The server rejected these coordinates. Please choose a different point.";
       }
 
+      if (error.status === 404) {
+        return "No satellite imagery was found for this location.";
+      }
+
+      if (error.status === 429) {
+        return "Sentinel Hub processing quota has been exhausted. Please try again later.";
+      }
+
       if (error.status >= 500) {
-        return "The server ran into a problem. Please try again shortly.";
+        return "The satellite service is temporarily unavailable. Please try again shortly.";
       }
 
       return "The request failed (status " + error.status + "). Please try again.";
@@ -271,7 +316,6 @@
 
     return "Unable to reach the server. Please check your connection and try again.";
   }
-
   /**
    * Send a coordinate pair to POST /api/v1/satellite-predict/ and reflect the
    * outcome in the sidebar.
@@ -294,10 +338,13 @@
       PREDICT_REQUEST_TIMEOUT_MS
     )
       .then(function (response) {
-        if (!response.ok) {
-          throw createPredictionHttpError(response.status);
-        }
-        return response.json();
+        return response.json().then(function (data) {
+          if (!response.ok) {
+            throw createPredictionHttpError(response.status, data);
+          }
+
+          return data;
+        });
       })
       .then(function (data) {
         renderPredictionResults(data);

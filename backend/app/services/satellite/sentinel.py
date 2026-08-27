@@ -21,6 +21,9 @@ from app.core.satellite_settings import satellite_settings
 from app.services.satellite.exceptions import (
     SatelliteAuthenticationError,
     SatelliteImageRetrievalError,
+    SatelliteNetworkError,
+    SatelliteQuotaError,
+    SatelliteServiceError,
 )
 from app.services.satellite.models import RawSatelliteImage, SatelliteImageRequest
 from app.services.satellite.provider import SatelliteProvider
@@ -88,7 +91,6 @@ function updateOutputMetadata(scenes, inputMetadata, outputMetadata) {
 }
 """.strip()
 
-
 class SentinelProvider(SatelliteProvider):
     """
     Satellite imagery provider backed by the Sentinel Hub Process API.
@@ -99,6 +101,7 @@ class SentinelProvider(SatelliteProvider):
         self._client_secret = (
             client_secret if client_secret is not None else satellite_settings.SENTINEL_HUB_CLIENT_SECRET
         )
+        
         self._access_token: Optional[str] = None
         self._token_expires_at: float = 0.0
 
@@ -137,10 +140,31 @@ class SentinelProvider(SatelliteProvider):
                 timeout=REQUEST_TIMEOUT_SECONDS,
             )
         except requests.RequestException as exc:
-            raise SatelliteImageRetrievalError(
-                "Unable to reach Sentinel Hub while retrieving imagery.",
+            raise SatelliteNetworkError(
+                "Unable to reach Sentinel Hub while retrieving imagery. "
+                "Please check your internet connection and try again.",
                 details=str(exc),
             ) from exc
+
+        if response.status_code == 401:
+            raise SatelliteAuthenticationError(
+                "Sentinel Hub authentication was rejected while retrieving imagery.",
+                details=response.text[:500],
+            )
+
+        if response.status_code == 403:
+            raise SatelliteQuotaError(
+                "Sentinel Hub quota or processing-unit limit has been reached. "
+                "Please check your Sentinel Hub account quota or try again later.",
+                details=response.text[:500],
+            )
+
+        if response.status_code >= 500:
+            raise SatelliteServiceError(
+                f"Sentinel Hub is temporarily unavailable "
+                f"(status {response.status_code}). Please try again later.",
+                details=response.text[:500],
+            )
 
         if response.status_code != 200:
             raise SatelliteImageRetrievalError(

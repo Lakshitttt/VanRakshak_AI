@@ -61,9 +61,6 @@ ml/dataset/
 *.pth
 *.pt
 
-!ml/models/
-!ml/models/best_resnet50.pth
-
 # ==========================================================
 # ML Outputs & Evaluation Results
 # ==========================================================
@@ -84,3 +81,5 @@ ml/src/*.png
 
 # ML evaluation outputs
 ml/results/
+
+running.txt

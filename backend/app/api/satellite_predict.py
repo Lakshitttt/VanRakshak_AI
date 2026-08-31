@@ -56,7 +56,8 @@ def predict_from_satellite(request_data: LocationRequest):
         # (Passes latitude and longitude. Add buffer/dimensions here if LocationRequest supports them)
         sat_request = SatelliteImageRequest(
             latitude=request_data.latitude,
-            longitude=request_data.longitude
+            longitude=request_data.longitude,
+            year=request_data.year,
         )
 
         # 2. Trigger the synchronous satellite download pipeline

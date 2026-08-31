@@ -201,10 +201,30 @@ def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
         return None
 
     try:
-        return datetime.strptime(
-            value,
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-        ).replace(tzinfo=timezone.utc)
+        # Sentinel/Copernicus timestamps use UTC "Z" and may contain
+        # fractional seconds, for example:
+        # 2025-10-15T05:31:45.53Z
+        # 2025-11-15T05:31:45.4Z
+        # 2025-12-15T05:31:45Z
+        #
+        # Python 3.10.4 does not reliably parse these after converting
+        # "Z" to "+00:00", so parse them explicitly and attach UTC.
+        if value.endswith("Z"):
+            timestamp = value[:-1]
+
+            if "." in timestamp:
+                return datetime.strptime(
+                    timestamp,
+                    "%Y-%m-%dT%H:%M:%S.%f",
+                ).replace(tzinfo=timezone.utc)
+
+            return datetime.strptime(
+                timestamp,
+                "%Y-%m-%dT%H:%M:%S",
+            ).replace(tzinfo=timezone.utc)
+
+        # Fallback for timestamps containing an explicit UTC offset.
+        return datetime.fromisoformat(value)
 
     except (TypeError, ValueError):
         logger.warning(

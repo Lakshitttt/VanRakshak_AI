@@ -23,6 +23,28 @@ DEFAULT_IMAGE_SIZE_PX: Final[int] = 224
 DEFAULT_BUFFER_METERS: Final[float] = DEFAULT_IMAGE_SIZE_PX * 10.0
 DEFAULT_DAYS_BACK: Final[int] = 90
 
+# Earliest year exposed for year-specific satellite search (the year
+# comparison feature). This is an application/UI support boundary for
+# this feature, not a scientific claim that Sentinel-2 has no usable
+# imagery before this year.
+MIN_SUPPORTED_YEAR: Final[int] = 2019
+
+# --- Standardized seasonal comparison window (Version 1) ---
+# When a specific year is requested, the satellite search is limited to
+# this same month/day window every year, rather than the full calendar
+# year, so a year-over-year comparison observes the same part of the
+# seasonal cycle instead of comparing, say, a July scene against a
+# December one. This reduces (does not eliminate) confounding from
+# ordinary seasonal vegetation change — it is not a claim that this
+# window is universally optimal for every location, and it does not
+# guarantee maximum vegetation greenness or maximum model accuracy.
+# Kept as named constants (not inline dates in sentinel.py) so this
+# window can be changed later without touching the search logic itself.
+COMPARISON_WINDOW_START_MONTH: Final[int] = 10  # October
+COMPARISON_WINDOW_START_DAY: Final[int] = 1
+COMPARISON_WINDOW_END_MONTH: Final[int] = 12  # December
+COMPARISON_WINDOW_END_DAY: Final[int] = 15
+
 # Approximate meters per degree of latitude (WGS 84, good enough for the
 # small bounding boxes this subsystem requests).
 METERS_PER_DEGREE_LATITUDE: Final[float] = 111_320.0
@@ -97,6 +119,11 @@ class SatelliteImageRequest:
     width_px: int = DEFAULT_IMAGE_SIZE_PX
     height_px: int = DEFAULT_IMAGE_SIZE_PX
     days_back: int = DEFAULT_DAYS_BACK
+    # If set, search is limited to the standardized seasonal comparison
+    # window (see COMPARISON_WINDOW_* above) within this calendar year,
+    # instead of the default rolling `days_back`-day window. Used by the
+    # year-comparison feature; leave unset for the existing behavior.
+    year: Optional[int] = None
 
     def bounding_box(self) -> BoundingBox:
         """

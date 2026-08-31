@@ -40,6 +40,11 @@
   ];
   var LOADING_MESSAGE_INTERVAL_MS = 4000;
 
+  // Mirrors MIN_SUPPORTED_YEAR in backend/app/services/satellite/models.py.
+  // An application/UI support boundary for the year-comparison feature,
+  // not a scientific claim about Sentinel-2 imagery availability.
+  var MIN_SUPPORTED_YEAR = 2019;
+
   /* -----------------------------------------------------
      State
      ----------------------------------------------------- */
@@ -50,6 +55,14 @@
   var searchDebounceTimer = null;
   var loadingMessageTimer = null;
   var loadingMessageIndex = 0;
+
+  // Year-comparison feature state. Two "slots" holding the last
+  // completed satellite-predict response for each selected year, plus
+  // a shared guard so the normal Analyze flow and the year-comparison
+  // flow never run two satellite requests at the same time.
+  var yearAResult = null;
+  var yearBResult = null;
+  var isSatelliteRequestInFlight = false;
 
   /* -----------------------------------------------------
      Element references (populated in init)
@@ -73,6 +86,12 @@
     els.analyzeBtn = document.getElementById("analyze-btn");
     els.resetBtn = document.getElementById("reset-btn");
     els.predictionResults = document.getElementById("prediction-results");
+
+    els.yearComparisonPanel = document.getElementById("year-comparison-panel");
+    els.yearASelect = document.getElementById("year-a-select");
+    els.yearBSelect = document.getElementById("year-b-select");
+    els.compareBtn = document.getElementById("compare-years-btn");
+    els.comparisonResults = document.getElementById("comparison-results");
   }
 
   /* -----------------------------------------------------
@@ -146,6 +165,11 @@
     clearPredictionResults();
     updateSidebar(latlng);
     setAnalyzeEnabled(true);
+
+    if (els.yearComparisonPanel) {
+      els.yearComparisonPanel.hidden = false;
+    }
+    clearComparisonState();
   }
 
   /**
@@ -165,6 +189,11 @@
     stopLoadingMessages();
     clearPredictionResults();
     setAnalyzeEnabled(false);
+
+    if (els.yearComparisonPanel) {
+      els.yearComparisonPanel.hidden = true;
+    }
+    clearComparisonState();
   }
 
   /**
@@ -324,7 +353,15 @@
    * @param {number} longitude
    */
   function requestPrediction(latitude, longitude) {
+    if (isSatelliteRequestInFlight) {
+      return;
+    }
+    isSatelliteRequestInFlight = true;
+
     setAnalyzeEnabled(false);
+    if (els.compareBtn) {
+      els.compareBtn.disabled = true;
+    }
     clearPredictionResults();
     startLoadingMessages();
 
@@ -356,6 +393,8 @@
       .finally(function () {
         stopLoadingMessages();
         setAnalyzeEnabled(true);
+        isSatelliteRequestInFlight = false;
+        updateCompareButtonState();
       });
   }
 
@@ -478,6 +517,265 @@
     }
 
     return date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+  }
+
+  /* -----------------------------------------------------
+     Year comparison
+     Reuses PREDICT_ENDPOINT, fetchWithTimeout,
+     createPredictionHttpError, getFriendlyPredictionErrorMessage,
+     buildDetailRow, formatPercent, and formatAcquisitionDate above —
+     nothing about the request/response handling is duplicated, only
+     the two-call sequencing and the comparison rendering are new.
+     ----------------------------------------------------- */
+
+  /**
+   * Fill a <select> with year options from MIN_SUPPORTED_YEAR through
+   * the current year, most recent first.
+   *
+   * @param {HTMLSelectElement} selectEl
+   */
+  function populateYearSelect(selectEl) {
+    if (!selectEl) {
+      return;
+    }
+
+    var currentYear = new Date().getFullYear();
+
+    for (var year = currentYear; year >= MIN_SUPPORTED_YEAR; year--) {
+      var option = document.createElement("option");
+      option.value = String(year);
+      option.textContent = String(year);
+      selectEl.appendChild(option);
+    }
+  }
+
+  /**
+   * Enable "Compare Years" only when a marker is placed, both years
+   * are selected, and no satellite request is already in flight.
+   */
+  function updateCompareButtonState() {
+    if (!els.compareBtn || !els.yearASelect || !els.yearBSelect) {
+      return;
+    }
+
+    var hasMarker = !!marker;
+    var hasYearA = els.yearASelect.value !== "";
+    var hasYearB = els.yearBSelect.value !== "";
+
+    els.compareBtn.disabled = !(hasMarker && hasYearA && hasYearB) || isSatelliteRequestInFlight;
+  }
+
+  /**
+   * Reset both year slots, the dropdown selections, and any displayed
+   * comparison — called when the marker changes or is reset, since a
+   * previous comparison described a different location.
+   */
+  function clearComparisonState() {
+    yearAResult = null;
+    yearBResult = null;
+
+    if (els.yearASelect) {
+      els.yearASelect.value = "";
+    }
+    if (els.yearBSelect) {
+      els.yearBSelect.value = "";
+    }
+
+    clearComparisonResultsOnly();
+    updateCompareButtonState();
+  }
+
+  /**
+   * Remove any currently displayed comparison output, without
+   * touching the dropdown selections.
+   */
+  function clearComparisonResultsOnly() {
+    if (els.comparisonResults) {
+      els.comparisonResults.innerHTML = "";
+      els.comparisonResults.hidden = true;
+    }
+  }
+
+  /**
+   * "Compare Years" click handler.
+   */
+  function handleCompareClick() {
+    if (!marker || isSatelliteRequestInFlight) {
+      return;
+    }
+
+    var yearA = parseInt(els.yearASelect.value, 10);
+    var yearB = parseInt(els.yearBSelect.value, 10);
+
+    if (!yearA || !yearB) {
+      return;
+    }
+
+    var latlng = marker.getLatLng();
+    runYearComparison(latlng.lat, latlng.lng, yearA, yearB);
+  }
+
+  /**
+   * POST a single year-scoped satellite-predict request.
+   *
+   * @param {number} latitude
+   * @param {number} longitude
+   * @param {number} year
+   * @returns {Promise<Object>} The parsed response body.
+   */
+  function fetchSatellitePrediction(latitude, longitude, year) {
+    return fetchWithTimeout(
+      PREDICT_ENDPOINT,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitude: latitude, longitude: longitude, year: year }),
+      },
+      PREDICT_REQUEST_TIMEOUT_MS
+    ).then(function (response) {
+      return response.json().then(function (data) {
+        if (!response.ok) {
+          throw createPredictionHttpError(response.status, data);
+        }
+        return data;
+      });
+    });
+  }
+
+  /**
+   * Run Year A then Year B sequentially (never in parallel — the
+   * existing architecture has no safety net for two concurrent
+   * satellite/token requests), then render the comparison.
+   *
+   * @param {number} latitude
+   * @param {number} longitude
+   * @param {number} yearA
+   * @param {number} yearB
+   */
+  function runYearComparison(latitude, longitude, yearA, yearB) {
+    isSatelliteRequestInFlight = true;
+    setAnalyzeEnabled(false);
+    els.compareBtn.disabled = true;
+    stopLoadingMessages();
+    clearComparisonResultsOnly();
+
+    els.sidebarHint.textContent = "Analyzing " + yearA + "…";
+
+    fetchSatellitePrediction(latitude, longitude, yearA)
+      .then(function (dataA) {
+        yearAResult = dataA;
+        els.sidebarHint.textContent = "Analyzing " + yearB + "…";
+        return fetchSatellitePrediction(latitude, longitude, yearB);
+      })
+      .then(function (dataB) {
+        yearBResult = dataB;
+        renderComparison(yearA, yearAResult, yearB, yearBResult);
+        els.sidebarHint.textContent = "Comparison complete.";
+      })
+      .catch(function (error) {
+        els.sidebarHint.textContent = getFriendlyPredictionErrorMessage(error);
+      })
+      .finally(function () {
+        isSatelliteRequestInFlight = false;
+        setAnalyzeEnabled(true);
+        updateCompareButtonState();
+      });
+  }
+
+  /**
+   * Render the Year A / Year B / Comparison card, reusing the same
+   * .card / .map-detail-list / .badge classes as renderPredictionResults.
+   *
+   * IMPORTANT: confidence is the classifier's confidence in its
+   * predicted class — it is never described as a measurement or
+   * percentage of physical landscape change.
+   *
+   * @param {number} yearA
+   * @param {Object} dataA
+   * @param {number} yearB
+   * @param {Object} dataB
+   */
+  function renderComparison(yearA, dataA, yearB, dataB) {
+    clearComparisonResultsOnly();
+
+    if (!els.comparisonResults) {
+      return;
+    }
+
+    var card = document.createElement("div");
+    card.className = "card";
+
+    var eyebrow = document.createElement("p");
+    eyebrow.className = "eyebrow";
+    eyebrow.textContent = "Year Comparison";
+    card.appendChild(eyebrow);
+
+    card.appendChild(buildYearSummaryBlock(yearA, dataA));
+    card.appendChild(buildYearSummaryBlock(yearB, dataB));
+    card.appendChild(buildComparisonSummaryBlock(dataA, dataB));
+
+    els.comparisonResults.appendChild(card);
+    els.comparisonResults.hidden = false;
+  }
+
+  /**
+   * @param {number} year
+   * @param {Object} data - A satellite-predict response for that year.
+   * @returns {HTMLElement}
+   */
+  function buildYearSummaryBlock(year, data) {
+    var wrapper = document.createElement("div");
+    wrapper.style.marginTop = "var(--space-md)";
+
+    var heading = document.createElement("h3");
+    heading.textContent = String(year);
+    heading.style.marginBottom = "var(--space-xs)";
+    wrapper.appendChild(heading);
+
+    var list = document.createElement("dl");
+    list.className = "map-detail-list";
+    list.appendChild(buildDetailRow("Acquisition Date", formatAcquisitionDate(data.acquisition_date)));
+    list.appendChild(buildDetailRow("Predicted Class", data.prediction || "—"));
+    list.appendChild(buildDetailRow("Confidence", formatPercent(data.confidence)));
+    wrapper.appendChild(list);
+
+    return wrapper;
+  }
+
+  /**
+   * Builds the change-summary block. Reports classification change and
+   * confidence change as two separate, plainly-worded facts — never as
+   * a single "X% landscape changed" claim.
+   *
+   * @param {Object} dataA
+   * @param {Object} dataB
+   * @returns {HTMLElement}
+   */
+  function buildComparisonSummaryBlock(dataA, dataB) {
+    var wrapper = document.createElement("div");
+    wrapper.style.marginTop = "var(--space-md)";
+
+    var heading = document.createElement("p");
+    heading.className = "eyebrow";
+    heading.textContent = "Comparison";
+    wrapper.appendChild(heading);
+
+    var classChanged = dataA.prediction !== dataB.prediction;
+    var classLine = document.createElement("p");
+    classLine.textContent = classChanged
+      ? "Predicted land-cover class changed: " + dataA.prediction + " \u2192 " + dataB.prediction
+      : "Predicted land-cover class remained: " + dataA.prediction;
+    wrapper.appendChild(classLine);
+
+    var confidenceDiff = Number(dataB.confidence) - Number(dataA.confidence);
+    var diffSign = confidenceDiff >= 0 ? "+" : "";
+    var diffLine = document.createElement("p");
+    diffLine.textContent =
+      "Model confidence: " + formatPercent(dataA.confidence) + " \u2192 " + formatPercent(dataB.confidence) +
+      " (difference: " + diffSign + confidenceDiff.toFixed(2) + " percentage points)";
+    wrapper.appendChild(diffLine);
+
+    return wrapper;
   }
 
   /* -----------------------------------------------------
@@ -756,6 +1054,28 @@
     els.resetBtn.addEventListener("click", resetMarker);
   }
 
+  /**
+   * Populate the year dropdowns and wire up the year-comparison
+   * controls. Kept separate from initSidebarActions() so the existing
+   * Analyze/Reset wiring is untouched.
+   */
+  function initYearComparison() {
+    populateYearSelect(els.yearASelect);
+    populateYearSelect(els.yearBSelect);
+
+    if (els.yearASelect) {
+      els.yearASelect.addEventListener("change", updateCompareButtonState);
+    }
+    if (els.yearBSelect) {
+      els.yearBSelect.addEventListener("change", updateCompareButtonState);
+    }
+    if (els.compareBtn) {
+      els.compareBtn.addEventListener("click", handleCompareClick);
+    }
+
+    updateCompareButtonState();
+  }
+
   /* -----------------------------------------------------
      Init
      ----------------------------------------------------- */
@@ -764,6 +1084,7 @@
     initMap();
     initSearch();
     initSidebarActions();
+    initYearComparison();
     setAnalyzeEnabled(false);
   }
 

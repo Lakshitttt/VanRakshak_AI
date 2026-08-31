@@ -134,6 +134,27 @@
 
         <div id="prediction-results" hidden></div>
 
+        <div class="map-year-comparison" id="year-comparison-panel" hidden>
+          <div class="map-year-controls">
+            <div class="map-year-field">
+              <label class="eyebrow" for="year-a-select">Year</label>
+              <select class="input" id="year-a-select">
+                <option value="">Select year…</option>
+              </select>
+            </div>
+            <div class="map-year-field">
+              <label class="eyebrow" for="year-b-select">Compare with</label>
+              <select class="input" id="year-b-select">
+                <option value="">Select year…</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-secondary" type="button" id="compare-years-btn" disabled>
+            Compare Years
+          </button>
+          <div id="comparison-results" hidden></div>
+        </div>
+
         <div class="map-sidebar-actions">
           <button class="btn btn-primary" type="button" id="analyze-btn" disabled>
             Analyze

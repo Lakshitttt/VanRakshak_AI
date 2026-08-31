@@ -24,8 +24,16 @@ from app.services.satellite.exceptions import (
     SatelliteNetworkError,
     SatelliteQuotaError,
     SatelliteServiceError,
+    NoSatelliteImageryAvailableError,
 )
-from app.services.satellite.models import RawSatelliteImage, SatelliteImageRequest
+from app.services.satellite.models import (
+    COMPARISON_WINDOW_END_DAY,
+    COMPARISON_WINDOW_END_MONTH,
+    COMPARISON_WINDOW_START_DAY,
+    COMPARISON_WINDOW_START_MONTH,
+    RawSatelliteImage,
+    SatelliteImageRequest,
+)
 from app.services.satellite.provider import SatelliteProvider
 
 from app.services.satellite.catalog import find_best_scene, CatalogScene
@@ -108,13 +116,44 @@ class SentinelProvider(SatelliteProvider):
     def fetch_image(self, request: SatelliteImageRequest) -> RawSatelliteImage:
         """
         Retrieve a Sentinel-2 L2A true-color image covering the requested location.
+
+        If `request.year` is set, the search is limited to the
+        standardized seasonal comparison window (COMPARISON_WINDOW_* in
+        models.py) within that calendar year, so year-over-year
+        comparisons observe the same part of the seasonal cycle. If
+        `request.year` is unset, behavior is unchanged: a rolling
+        90-day window ending now.
         """
         access_token = self._get_access_token()
-        
-        time_to = datetime.now(timezone.utc)
-        # Force a 90-day search window to ensure we always get a scene, even in monsoon season
-        time_from = time_to - timedelta(days=90)
-        
+
+        if request.year is not None:
+            time_from = datetime(
+                request.year,
+                COMPARISON_WINDOW_START_MONTH,
+                COMPARISON_WINDOW_START_DAY,
+                tzinfo=timezone.utc,
+            )
+            window_end = datetime(
+                request.year,
+                COMPARISON_WINDOW_END_MONTH,
+                COMPARISON_WINDOW_END_DAY,
+                23, 59, 59,
+                tzinfo=timezone.utc,
+            )
+            time_to = min(window_end, datetime.now(timezone.utc))
+
+            if time_from > time_to:
+                # The standardized window for this year hasn't happened
+                # yet (e.g. requesting the current year before October).
+                raise NoSatelliteImageryAvailableError(
+                    f"The standardized comparison window (October 1 - December 15) "
+                    f"for {request.year} has not occurred yet."
+                )
+        else:
+            time_to = datetime.now(timezone.utc)
+            # Force a 90-day search window to ensure we always get a scene, even in monsoon season
+            time_from = time_to - timedelta(days=90)
+
         best_scene = find_best_scene(
             access_token=access_token,
             bbox=request.bounding_box().as_list(),
@@ -123,7 +162,12 @@ class SentinelProvider(SatelliteProvider):
         )
         
         if not best_scene:
-            raise SatelliteImageRetrievalError(
+            if request.year is not None:
+                raise NoSatelliteImageryAvailableError(
+                    f"No suitable Sentinel-2 imagery was found for {request.year} "
+                    f"(October 1 - December 15) at this location."
+                )
+            raise NoSatelliteImageryAvailableError(
                 "No suitable imagery found in the 90-day search window."
             )
 
@@ -180,11 +224,22 @@ class SentinelProvider(SatelliteProvider):
                 details=response.headers.get("Content-Type"),
             )
 
+        acquisition_date = self._extract_acquisition_date(user_data)
+
+        if request.year is not None:
+            if acquisition_date is None or acquisition_date.year != request.year:
+                # Do not silently return an acquisition from a different
+                # year than the one requested.
+                raise NoSatelliteImageryAvailableError(
+                    f"Could not confirm a {request.year} acquisition for this "
+                    "location; the retrieved scene's date could not be verified."
+                )
+
         return RawSatelliteImage(
             content=image_bytes,
             content_type=SINGLE_PART_CONTENT_TYPE,
             provider_name=PROVIDER_NAME,
-            acquisition_date=self._extract_acquisition_date(user_data),
+            acquisition_date=acquisition_date,
         )
 
     @staticmethod

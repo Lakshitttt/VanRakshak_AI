@@ -123,18 +123,31 @@ class SentinelProvider(SatelliteProvider):
         comparisons observe the same part of the seasonal cycle. If
         `request.year` is unset, behavior is unchanged: a rolling
         90-day window ending now.
+
+        If `request.year` is the current calendar year and that year's
+        window hasn't happened yet, the search transparently falls back
+        to the latest COMPLETED year's equivalent window instead (see
+        the comment at that branch below) — the caller still gets a
+        real, dated image rather than an error, and the returned
+        `acquisition_date` always honestly reflects which year the
+        image actually came from.
         """
         access_token = self._get_access_token()
 
+        # Tracks which calendar year's window was actually searched.
+        # Equal to request.year unless the current-year fallback below
+        # steps it back to the previous, already-completed year.
+        effective_year = request.year
+
         if request.year is not None:
             time_from = datetime(
-                request.year,
+                effective_year,
                 COMPARISON_WINDOW_START_MONTH,
                 COMPARISON_WINDOW_START_DAY,
                 tzinfo=timezone.utc,
             )
             window_end = datetime(
-                request.year,
+                effective_year,
                 COMPARISON_WINDOW_END_MONTH,
                 COMPARISON_WINDOW_END_DAY,
                 23, 59, 59,
@@ -143,11 +156,34 @@ class SentinelProvider(SatelliteProvider):
             time_to = min(window_end, datetime.now(timezone.utc))
 
             if time_from > time_to:
-                # The standardized window for this year hasn't happened
-                # yet (e.g. requesting the current year before October).
-                raise NoSatelliteImageryAvailableError(
-                    f"The standardized comparison window (October 1 - December 15) "
-                    f"for {request.year} has not occurred yet."
+                # The requested year's own October 1 - December 15 window
+                # has not happened yet — this only occurs when the
+                # requested year is the current calendar year and today
+                # is still before October 1. The current year cannot yet
+                # produce a same-season comparison point, so rather than
+                # failing outright, we fall back to the most recently
+                # COMPLETED year's equivalent window (always the exact
+                # same October 1 - December 15 range, never an arbitrary
+                # date range), preserving the seasonal comparability the
+                # whole comparison feature depends on. This fallback is
+                # never surfaced to the frontend as a distinct state —
+                # the caller simply receives a real image with its real
+                # (earlier) acquisition_date, which the frontend already
+                # displays as-is; it is not relabeled as request.year's
+                # imagery anywhere internally.
+                effective_year = effective_year - 1
+                time_from = datetime(
+                    effective_year,
+                    COMPARISON_WINDOW_START_MONTH,
+                    COMPARISON_WINDOW_START_DAY,
+                    tzinfo=timezone.utc,
+                )
+                time_to = datetime(
+                    effective_year,
+                    COMPARISON_WINDOW_END_MONTH,
+                    COMPARISON_WINDOW_END_DAY,
+                    23, 59, 59,
+                    tzinfo=timezone.utc,
                 )
         else:
             time_to = datetime.now(timezone.utc)
@@ -162,9 +198,9 @@ class SentinelProvider(SatelliteProvider):
         )
         
         if not best_scene:
-            if request.year is not None:
+            if effective_year is not None:
                 raise NoSatelliteImageryAvailableError(
-                    f"No suitable Sentinel-2 imagery was found for {request.year} "
+                    f"No suitable Sentinel-2 imagery was found for {effective_year} "
                     f"(October 1 - December 15) at this location."
                 )
             raise NoSatelliteImageryAvailableError(
@@ -226,12 +262,19 @@ class SentinelProvider(SatelliteProvider):
 
         acquisition_date = self._extract_acquisition_date(user_data)
 
-        if request.year is not None:
-            if acquisition_date is None or acquisition_date.year != request.year:
+        if effective_year is not None:
+            # Verify against effective_year (the year actually searched),
+            # not request.year — when the current-year fallback above has
+            # triggered, the real, honest acquisition date legitimately
+            # belongs to effective_year (e.g. 2025), not to the original
+            # request.year (e.g. 2026). Checking against request.year
+            # here would incorrectly reject the fallback's own valid
+            # result.
+            if acquisition_date is None or acquisition_date.year != effective_year:
                 # Do not silently return an acquisition from a different
-                # year than the one requested.
+                # year than the one actually searched.
                 raise NoSatelliteImageryAvailableError(
-                    f"Could not confirm a {request.year} acquisition for this "
+                    f"Could not confirm a {effective_year} acquisition for this "
                     "location; the retrieved scene's date could not be verified."
                 )
 
@@ -280,7 +323,23 @@ class SentinelProvider(SatelliteProvider):
             dates = user_data.get("acquisition_dates") or []
             if not dates or not dates[0]:
                 return None
-            return datetime.fromisoformat(str(dates[0]).replace("Z", "+00:00"))
+            date_value = str(dates[0])
+
+            if date_value.endswith("Z"):
+                timestamp = date_value[:-1]
+
+                if "." in timestamp:
+                    return datetime.strptime(
+                        timestamp,
+                        "%Y-%m-%dT%H:%M:%S.%f",
+                    ).replace(tzinfo=timezone.utc)
+
+                return datetime.strptime(
+                    timestamp,
+                    "%Y-%m-%dT%H:%M:%S",
+                ).replace(tzinfo=timezone.utc)
+
+            return datetime.fromisoformat(date_value)
         except (AttributeError, ValueError, TypeError, IndexError):
             logger.warning("Could not parse an acquisition date from Sentinel Hub's response.")
             return None

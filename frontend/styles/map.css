@@ -42,7 +42,9 @@ body.map-page {
 .map-main {
   flex: 1 1 auto;
   min-height: 0;
-  display: flex;
+  position: relative; /* Acts as a strict boundary for the layout */
+  width: 100%;
+  /* Removed 'display: flex' to eliminate flex-child expansion bugs */
 }
 
 /* -----------------------------------------------------
@@ -52,10 +54,11 @@ body.map-page {
    context so the search overlay can sit on top of the map.
    ----------------------------------------------------- */
 .map-layout {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
+  position: absolute; /* Physically pins the layout to the viewport corners */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: grid;
   grid-template-columns: 1fr 340px;
 }
@@ -146,14 +149,15 @@ body.map-page {
 .map-sidebar {
   position: relative;
   z-index: var(--z-dropdown);
-  height: 100%;
-  overflow-y: auto;
+  min-height: 0; /* Tells the browser this element is allowed to shrink */
+  overflow-y: auto; /* The scrollbar will now definitively render inside the screen bounds */
   background-color: var(--color-bg-raised);
   border-left: 1px solid var(--color-border);
   padding: var(--space-lg) var(--space-md);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  /* Removed 'height: 100%' so the grid handles the sizing naturally */
 }
 
 .map-sidebar-header h2 {
@@ -262,6 +266,7 @@ body.map-page {
 
   .map-sidebar {
     height: auto;
+    min-height: 0;
     max-height: 45vh;
     border-left: none;
     border-top: 1px solid var(--color-border);

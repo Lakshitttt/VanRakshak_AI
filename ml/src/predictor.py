@@ -14,7 +14,22 @@ from PIL import Image
 from torchvision import transforms
 
 from ml.src.model import create_model
-from ml.src.data import classes
+
+# These labels match the alphabetical ImageFolder class order used during
+# training. Kept here so inference does not import the training dataset module.
+# Importing ml.src.data would try to open the developer's local Windows dataset.
+classes = [
+    "AnnualCrop",
+    "Forest",
+    "HerbaceousVegetation",
+    "Highway",
+    "Industrial",
+    "Pasture",
+    "PermanentCrop",
+    "Residential",
+    "River",
+    "SeaLake",
+]
 # -----------------------------
 # Path Resolution & Device
 # -----------------------------
@@ -29,7 +44,7 @@ print(f"[Predictor] Initializing on device: {device}")
 # Global Model Initialization
 # -----------------------------
 # Loaded once at module import to prevent high latency during individual API calls
-model = create_model().to(device)
+model = create_model(pretrained=False).to(device)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
 model.eval()
 print("[Predictor] ✅ ResNet50 model loaded successfully in memory.")

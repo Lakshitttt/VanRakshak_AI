@@ -1,9 +1,14 @@
 import torch.nn as nn
 from torchvision.models import resnet50, ResNet50_Weights
 
-def create_model():
-    # Load pretrained ResNet50
-    model = resnet50(weights=ResNet50_Weights.DEFAULT)
+def create_model(pretrained=True):
+    # Load the ResNet50 architecture.
+    # During training, the default pretrained=True preserves the original
+    # transfer-learning setup. During inference, pretrained=False avoids an
+    # unnecessary ImageNet weight download because best_resnet50.pth is loaded
+    # immediately afterward.
+    weights = ResNet50_Weights.DEFAULT if pretrained else None
+    model = resnet50(weights=weights)
 
     # Freeze all pretrained layers
     for param in model.parameters():

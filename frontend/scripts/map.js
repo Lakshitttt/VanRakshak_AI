@@ -30,7 +30,7 @@
   var TILE_ATTRIBUTION =
     '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
 
-  var PREDICT_ENDPOINT = "http://127.0.0.1:8000/api/v1/satellite-predict/";
+  var PREDICT_ENDPOINT = "https://vanrakshak-backend.onrender.com/api/v1/satellite-predict/";
   var PREDICT_REQUEST_TIMEOUT_MS = 60000; // ~60 seconds — satellite search + download + inference can take a while
 
   var LOADING_MESSAGES = [
@@ -629,7 +629,11 @@
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latitude: latitude, longitude: longitude, year: year }),
+        body: JSON.stringify({
+          latitude: latitude,
+          longitude: longitude,
+          year: new Date().getFullYear()
+        }),
       },
       PREDICT_REQUEST_TIMEOUT_MS
     ).then(function (response) {

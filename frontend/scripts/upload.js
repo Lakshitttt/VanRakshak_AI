@@ -17,7 +17,7 @@
   var ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png"];
   var ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png"];
 
-  var PREDICT_ENDPOINT = "http://127.0.0.1:8000/api/v1/predict";
+  var PREDICT_ENDPOINT = "https://vanrakshak-backend.onrender.com/api/v1/predict";
   var REQUEST_TIMEOUT_MS = 30000; // 30 seconds
 
   var ANALYZE_LABEL_DEFAULT = "Analyze Image";

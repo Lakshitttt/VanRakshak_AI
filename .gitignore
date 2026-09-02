@@ -58,8 +58,7 @@ ml/dataset/
 # ML Model Checkpoints
 # Ignore all checkpoints except the final trained model
 # ==========================================================
-*.pth
-*.pt
+
 
 # ==========================================================
 # ML Outputs & Evaluation Results

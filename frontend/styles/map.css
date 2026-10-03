@@ -61,6 +61,15 @@ body.map-page {
   bottom: 0;
   display: grid;
   grid-template-columns: 1fr 340px;
+  /* Without an explicit row track, the implicit row defaults to
+     content-based "auto" sizing, which grows to fit the sidebar's
+     full content height and overflows past the viewport instead of
+     capping at the available space. "minmax(0, 1fr)" caps the row at
+     the container's own height (fr distributes exactly the available
+     space, never more) while still letting it shrink to 0, which is
+     what actually makes .map-sidebar's own min-height:0 +
+     overflow-y:auto below take effect as an internal scrollbar. */
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .map-canvas {

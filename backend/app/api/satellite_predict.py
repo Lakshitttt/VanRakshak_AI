@@ -83,7 +83,8 @@ def predict_from_satellite(request_data: LocationRequest):
             acquisition_date=satellite_result.acquisition_date,
             provider=satellite_result.provider,
             latitude=satellite_result.latitude,
-            longitude=satellite_result.longitude
+            longitude=satellite_result.longitude,
+            image_reference=satellite_result.image_path.name
         )
 
     except HTTPException:

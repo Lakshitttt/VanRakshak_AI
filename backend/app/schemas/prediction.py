@@ -46,3 +46,8 @@ class SatellitePredictionResponse(BaseModel):
     provider: str
     latitude: float
     longitude: float
+
+    # Opaque reference to the saved satellite image backing this
+    # prediction, used later to request a PDF comparison report
+    # without re-downloading imagery or re-running inference.
+    image_reference: Optional[str] = None

@@ -11,7 +11,7 @@ from typing import Final
 
 from fastapi import APIRouter
 
-from app.api import health, location, predict, satellite_predict
+from app.api import health, location, predict, satellite_predict, satellite_report
 from app.core.constants import API_V1_PREFIX
 
 api_router: Final[APIRouter] = APIRouter(prefix=API_V1_PREFIX)
@@ -22,6 +22,11 @@ api_router.include_router(
     satellite_predict.router,
     prefix="/satellite-predict",
     tags=["Satellite Prediction"],
+)
+api_router.include_router(
+    satellite_report.router,
+    prefix="/satellite-report",
+    tags=["Satellite Report"],
 )
 
 __all__ = ["api_router"]

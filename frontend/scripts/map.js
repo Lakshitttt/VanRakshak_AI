@@ -33,6 +33,9 @@
   var PREDICT_ENDPOINT = "https://vanrakshak-backend.onrender.com/api/v1/satellite-predict/";
   var PREDICT_REQUEST_TIMEOUT_MS = 60000; // ~60 seconds — satellite search + download + inference can take a while
 
+  var REPORT_ENDPOINT = "https://vanrakshak-backend.onrender.com/api/v1/satellite-report/";
+  var REPORT_REQUEST_TIMEOUT_MS = 30000; // No new satellite/ML work here, just PDF rendering — shorter timeout is fine
+
   var LOADING_MESSAGES = [
     "Searching Sentinel imagery…",
     "Downloading image…",
@@ -64,6 +67,14 @@
   var yearBResult = null;
   var isSatelliteRequestInFlight = false;
 
+  // The requested years behind the last successfully rendered
+  // comparison (distinct from the dropdown values, which can change
+  // after a comparison is rendered) — this is what the Download Report
+  // request is built from, so it always matches what's on screen.
+  var lastComparisonYearA = null;
+  var lastComparisonYearB = null;
+  var isReportRequestInFlight = false;
+
   /* -----------------------------------------------------
      Element references (populated in init)
      ----------------------------------------------------- */
@@ -92,6 +103,7 @@
     els.yearBSelect = document.getElementById("year-b-select");
     els.compareBtn = document.getElementById("compare-years-btn");
     els.comparisonResults = document.getElementById("comparison-results");
+    els.downloadReportBtn = document.getElementById("download-report-btn");
   }
 
   /* -----------------------------------------------------
@@ -594,6 +606,14 @@
       els.comparisonResults.innerHTML = "";
       els.comparisonResults.hidden = true;
     }
+
+    lastComparisonYearA = null;
+    lastComparisonYearB = null;
+
+    if (els.downloadReportBtn) {
+      els.downloadReportBtn.hidden = true;
+      setDownloadReportLoading(false);
+    }
   }
 
   /**
@@ -632,7 +652,7 @@
         body: JSON.stringify({
           latitude: latitude,
           longitude: longitude,
-          year: new Date().getFullYear()
+          year: year
         }),
       },
       PREDICT_REQUEST_TIMEOUT_MS
@@ -675,6 +695,12 @@
         yearBResult = dataB;
         renderComparison(yearA, yearAResult, yearB, yearBResult);
         els.sidebarHint.textContent = "Comparison complete.";
+
+        lastComparisonYearA = yearA;
+        lastComparisonYearB = yearB;
+        if (els.downloadReportBtn) {
+          els.downloadReportBtn.hidden = false;
+        }
       })
       .catch(function (error) {
         els.sidebarHint.textContent = getFriendlyPredictionErrorMessage(error);
@@ -780,6 +806,179 @@
     wrapper.appendChild(diffLine);
 
     return wrapper;
+  }
+
+  /* -----------------------------------------------------
+     Download Comparison Report (PDF)
+     Builds strictly on data already in hand (yearAResult/yearBResult
+     from the last successful comparison) — no new satellite download
+     or ML inference happens here, only a PDF render on the backend.
+     ----------------------------------------------------- */
+
+  /**
+   * @param {boolean} loading
+   */
+  function setDownloadReportLoading(loading) {
+    if (!els.downloadReportBtn) {
+      return;
+    }
+
+    els.downloadReportBtn.disabled = loading;
+    els.downloadReportBtn.textContent = loading
+      ? "Preparing report…"
+      : "Download Comparison Report (PDF)";
+  }
+
+  /**
+   * Translate a caught error from the report request into a short,
+   * friendly message safe to show in the sidebar.
+   *
+   * @param {Error} error
+   * @returns {string}
+   */
+  function getFriendlyReportErrorMessage(error) {
+    if (error && error.name === "AbortError") {
+      return "The report request timed out. Please try again.";
+    }
+
+    if (error && error.apiError && typeof error.apiError === "object") {
+      switch (error.apiError.error) {
+        case "INVALID_IMAGE_REFERENCE":
+          return "The comparison images are no longer available. Please re-run the comparison and try again.";
+
+        case "REPORT_GENERATION_ERROR":
+          return "The report could not be generated. Please try again.";
+
+        default:
+          return error.apiError.message || "The report request failed. Please try again.";
+      }
+    }
+
+    return "Unable to generate the report. Please check your connection and try again.";
+  }
+
+  /**
+   * Trigger a browser download for a Blob, using a throwaway anchor
+   * element (works across modern browsers without any extra library).
+   *
+   * @param {Blob} blob
+   * @param {string} filename
+   */
+  function triggerBlobDownload(blob, filename) {
+    var url = window.URL.createObjectURL(blob);
+    var anchor = document.createElement("a");
+
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+
+    window.setTimeout(function () {
+      window.URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
+  /**
+   * POST the already-completed comparison's data to
+   * /api/v1/satellite-report/ and download the returned PDF.
+   *
+   * @param {number} latitude
+   * @param {number} longitude
+   * @param {number} yearA
+   * @param {Object} dataA
+   * @param {number} yearB
+   * @param {Object} dataB
+   */
+  function downloadComparisonReport(latitude, longitude, yearA, dataA, yearB, dataB) {
+    var requestBody = {
+      latitude: latitude,
+      longitude: longitude,
+      year_a: {
+        requested_year: yearA,
+        acquisition_date: dataA.acquisition_date || null,
+        provider: dataA.provider || "",
+        prediction: dataA.prediction || "",
+        image_reference: dataA.image_reference,
+      },
+      year_b: {
+        requested_year: yearB,
+        acquisition_date: dataB.acquisition_date || null,
+        provider: dataB.provider || "",
+        prediction: dataB.prediction || "",
+        image_reference: dataB.image_reference,
+      },
+    };
+
+    return fetchWithTimeout(
+      REPORT_ENDPOINT,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      },
+      REPORT_REQUEST_TIMEOUT_MS
+    ).then(function (response) {
+      if (!response.ok) {
+        return response
+          .json()
+          .catch(function () {
+            return null;
+          })
+          .then(function (data) {
+            throw createPredictionHttpError(response.status, data);
+          });
+      }
+      return response.blob();
+    });
+  }
+
+  /**
+   * "Download Comparison Report" click handler.
+   */
+  function handleDownloadReportClick() {
+    if (
+      isReportRequestInFlight ||
+      !marker ||
+      !yearAResult ||
+      !yearBResult ||
+      lastComparisonYearA === null ||
+      lastComparisonYearB === null
+    ) {
+      return;
+    }
+
+    if (!yearAResult.image_reference || !yearBResult.image_reference) {
+      els.sidebarHint.textContent = "The comparison images are no longer available. Please re-run the comparison and try again.";
+      return;
+    }
+
+    isReportRequestInFlight = true;
+    setDownloadReportLoading(true);
+
+    var latlng = marker.getLatLng();
+    var filename =
+      "vanrakshak-comparison-" + lastComparisonYearA + "-" + lastComparisonYearB + ".pdf";
+
+    downloadComparisonReport(
+      latlng.lat,
+      latlng.lng,
+      lastComparisonYearA,
+      yearAResult,
+      lastComparisonYearB,
+      yearBResult
+    )
+      .then(function (blob) {
+        triggerBlobDownload(blob, filename);
+        els.sidebarHint.textContent = "Report downloaded.";
+      })
+      .catch(function (error) {
+        els.sidebarHint.textContent = getFriendlyReportErrorMessage(error);
+      })
+      .finally(function () {
+        isReportRequestInFlight = false;
+        setDownloadReportLoading(false);
+      });
   }
 
   /* -----------------------------------------------------
@@ -1075,6 +1274,9 @@
     }
     if (els.compareBtn) {
       els.compareBtn.addEventListener("click", handleCompareClick);
+    }
+    if (els.downloadReportBtn) {
+      els.downloadReportBtn.addEventListener("click", handleDownloadReportClick);
     }
 
     updateCompareButtonState();

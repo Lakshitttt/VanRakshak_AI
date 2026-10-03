@@ -13,6 +13,7 @@ not touch the prediction pipeline. Swapping the default provider later
 `get_default_provider` below.
 """
 
+import re
 import uuid
 from pathlib import Path
 from typing import Dict, Final, Optional
@@ -37,6 +38,16 @@ _EXTENSION_BY_CONTENT_TYPE: Final[Dict[str, str]] = {
     "image/tiff": "tiff",
     "image/jpeg": "jpg",
 }
+
+# Opaque filename reference pattern used to resolve a previously-saved
+# satellite image for report generation. Deliberately strict: a 32-char
+# lowercase hex UUID (matching uuid4().hex) plus one of the known
+# extensions. Anything that doesn't match this exact shape is rejected
+# before touching the filesystem, which rules out path traversal
+# (no "/", "..", or absolute paths can ever match this pattern).
+_IMAGE_REFERENCE_PATTERN: Final[re.Pattern] = re.compile(
+    r"^[0-9a-f]{32}\.(?:png|tiff|jpg)$"
+)
 
 
 def get_default_provider() -> SatelliteProvider:
@@ -142,3 +153,43 @@ def _resolve_temp_dir() -> Path:
     temp_dir = Path(configured_dir) if configured_dir else DEFAULT_TEMP_DIR
     temp_dir.mkdir(parents=True, exist_ok=True)
     return temp_dir
+
+
+def resolve_satellite_image_path(image_reference: str) -> Path:
+    """
+    Resolve an opaque image reference (e.g. "ab12...ef.png", exactly the
+    value previously returned as `image_reference` in a prediction
+    response) to the actual saved file inside the satellite temp
+    directory.
+
+    This is the only way report generation is allowed to turn a
+    client-supplied string into a filesystem path. It never accepts a
+    path, only a bare filename, and it re-verifies containment after
+    resolving so a reference can't escape the temp directory by any
+    means (symlink, "..", absolute path, etc.).
+
+    Args:
+        image_reference: The opaque filename reference supplied by the
+            client, exactly as returned in a prior prediction response.
+
+    Returns:
+        The resolved, existing path to the satellite image.
+
+    Raises:
+        ValueError: If the reference does not match the expected
+            opaque-filename shape, resolves outside the temp
+            directory, or does not correspond to an existing file.
+    """
+    if not _IMAGE_REFERENCE_PATTERN.match(image_reference):
+        raise ValueError(f"Invalid image reference: {image_reference!r}")
+
+    temp_dir = _resolve_temp_dir()
+    candidate = (temp_dir / image_reference).resolve()
+
+    if candidate.parent != temp_dir.resolve():
+        raise ValueError(f"Invalid image reference: {image_reference!r}")
+
+    if not candidate.is_file():
+        raise ValueError(f"Invalid image reference: {image_reference!r}")
+
+    return candidate
